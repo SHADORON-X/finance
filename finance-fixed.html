@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>SHADORON - Budget Discipline</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="app">
+        <!-- HEADER -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">⚔️</div>
+                <span class="logo-text">SHADORON</span>
+            </div>
+            <div class="header-actions">
+                <div class="level-badge" id="level-badge" onclick="showLevelModal()">
+                    <div class="level-icon">🎖️</div>
+                    <div class="level-info">
+                        <span class="level-rank" id="current-rank">Recrue</span>
+                        <span class="level-xp" id="current-xp">0 XP</span>
+                    </div>
+                </div>
+                <button class="icon-btn" onclick="openSearch()" title="Recherche (Ctrl+K)">🔍</button>
+                <button class="icon-btn" onclick="switchTab('settings')" title="Parametres">⚙️</button>
+            </div>
+        </header>
+
+        <!-- TOAST CONTAINER -->
+        <div class="toast-container" id="toast-container" role="status" aria-live="polite"></div>
+
+        <!-- ============ TAB: DASHBOARD ============ -->
+        <div id="tab-dashboard" class="tab-content active">
+            <!-- Morning Briefing -->
+            <div class="morning-briefing" id="morning-briefing">
+                <div class="briefing-header">
+                    <div>
+                        <div class="briefing-greeting" id="greeting">Bonjour, Guerrier</div>
+                        <div class="briefing-date" id="current-date"></div>
+                    </div>
+                </div>
+                <div class="briefing-mantra" id="daily-mantra">
+                    "La discipline est le pont entre les objectifs et les accomplissements."
+                </div>
+                <div class="briefing-stats">
+                    <div class="briefing-stat">
+                        <div class="briefing-stat-value" id="stat-streak">0</div>
+                        <div class="briefing-stat-label">Jours</div>
+                    </div>
+                    <div class="briefing-stat">
+                        <div class="briefing-stat-value" id="stat-transactions">0</div>
+                        <div class="briefing-stat-label">Operations</div>
+                    </div>
+                    <div class="briefing-stat">
+                        <div class="briefing-stat-value" id="stat-savings">0</div>
+                        <div class="briefing-stat-label">Epargne %</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conseils Financiers Modernes (plus de citations et intelligence) -->
+            <div class="finance-tips">
+                <div class="tip-title">Conseil du Jour: Éviter le Biais d'Ancrage</div>
+                <div class="tip-text">Le biais d'ancrage en finance est la tendance à s'appuyer trop sur la première information reçue (comme un prix initial) lors de décisions. Pour l'éviter, comparez toujours plusieurs options et réévaluez vos budgets mensuellement.</div>
+                <div class="tip-text">"L'argent est un outil. Utilisez-le avec sagesse pour bâtir votre avenir." - Citation financière moderne.</div>
+                <div class="tip-text">"Investissez dans ce qui vous rend libre, pas dans ce qui vous enchaîne." - Principe de finance personnelle.</div>
+            </div>
+
+            <!-- Streak Banner -->
+            <div class="streak-banner" id="streak-banner" style="display: none;">
+                <div class="streak-info">
+                    <span class="streak-icon">🔥</span>
+                    <div class="streak-text">
+                        <div class="streak-count" id="streak-count">0 jours</div>
+                        <div class="streak-label">de discipline consecutive</div>
+                    </div>
+                </div>
+                <div class="streak-best"> Record: <span id="best-streak">0</span> jours </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <div class="quick-btn" onclick="switchTab('income')">+ Revenu</div>
+                <div class="quick-btn" onclick="quickExpense('nourriture')">- Nourriture</div>
+                <div class="quick-btn" onclick="quickExpense('transport')">- Transport</div>
+            </div>
+
+            <!-- Total Balance Card -->
+            <div class="card total-balance-card">
+                <div class="total-balance-label">Total Disponible</div>
+                <div class="total-balance-value" id="total-balance">0 FCFA</div>
+            </div>
+
+            <!-- Balances Grid -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Soldes par Categorie</span>
+                </div>
+                <div class="view-toggle">
+                    <div class="toggle-btn active" onclick="toggleView('all')">Tout</div>
+                    <div class="toggle-btn" onclick="toggleView('month')">Ce mois</div>
+                </div>
+                <div class="balances-grid" id="balances-grid">
+                    <!-- Generated by JS -->
+                </div>
+            </div>
+
+            <!-- Graphique Dépenses -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Répartition Dépenses</span>
+                </div>
+                <canvas id="expense-chart" class="chart-card"></canvas>
+            </div>
+
+            <!-- Objectif Epargne -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Objectif Epargne</span>
+                </div>
+                <div class="savings-goal">
+                    <div id="goal-progress">0 / 0 FCFA</div>
+                    <div class="goal-jauge">
+                        <div class="goal-fill" id="goal-fill" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Habit Calendar -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Activite des 30 derniers jours</span>
+                </div>
+                <div class="habit-calendar" id="habit-calendar">
+                    <!-- Generated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ TAB: INCOME ============ -->
+        <div id="tab-income" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Ajouter un Revenu</span>
+                </div>
+                <form id="income-form">
+                    <div class="form-group">
+                        <label class="form-label">Montant recu (FCFA)</label>
+                        <input type="number" id="income-amount" class="form-input" min="0" step="1" placeholder="0" required>
+                    </div>
+                    <div id="income-preview" class="preview-card" style="display: none;">
+                        <div class="preview-title">Repartition automatique</div>
+                        <div id="preview-rows"></div>
+                    </div>
+                    <div class="form-group" style="margin-top: 16px;">
+                        <button type="submit" class="btn btn-primary">
+                            <span>Enregistrer</span>
+                            <span>+10 XP</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Pourcentages de Repartition</span>
+                </div>
+                <div class="allocation-grid" id="allocation-config"></div>
+                <div class="allocation-total" id="allocation-total">
+                    <span>Total</span>
+                    <span id="total-percent">100%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ TAB: EXPENSE ============ -->
+        <div id="tab-expense" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Enregistrer une Depense</span>
+                </div>
+                <form id="expense-form">
+                    <div class="form-group">
+                        <label class="form-label">Categorie</label>
+                        <select id="expense-category" class="form-select" required>
+                            <option value="">Choisir une categorie</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Montant (FCFA)</label>
+                        <input type="number" id="expense-amount" class="form-input" min="0" step="1" placeholder="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Note (optionnel)</label>
+                        <input type="text" id="expense-note" class="form-input" placeholder="Description">
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary">
+                            <span>Enregistrer</span>
+                            <span>+5 XP</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ============ TAB: HISTORY ============ -->
+        <div id="tab-history" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Historique des Operations</span>
+                    <span class="card-action" onclick="exportData()">Exporter</span>
+                </div>
+                <div class="history-list" id="history-list">
+                    <!-- Generated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ TAB: PROGRESS ============ -->
+        <div id="tab-progress" class="tab-content">
+            <!-- XP Progress -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Progression</span>
+                </div>
+                <div class="xp-progress">
+                    <div class="xp-header">
+                        <span class="xp-level" id="progress-level">Niveau 1 - Recrue</span>
+                        <span class="xp-amount" id="progress-xp">0 / 100 XP</span>
+                    </div>
+                    <div class="xp-bar">
+                        <div class="xp-fill" id="xp-fill" style="width: 0%;"></div>
+                    </div>
+                </div>
+                <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem;">
+                    Prochain niveau: <span id="next-rank">Soldat</span>
+                </div>
+            </div>
+
+            <!-- Badges -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Badges Debloques</span>
+                    <span class="card-action" id="badges-count">0/12</span>
+                </div>
+                <div class="badges-grid" id="badges-grid">
+                    <!-- Generated by JS -->
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Statistiques</span>
+                </div>
+                <div class="balances-grid">
+                    <div class="balance-item">
+                        <div class="balance-left">
+                            <div class="balance-icon">📊</div>
+                            <div>
+                                <div class="balance-name">Total Operations</div>
+                            </div>
+                        </div>
+                        <div class="balance-value" id="stats-total-ops">0</div>
+                    </div>
+                    <div class="balance-item">
+                        <div class="balance-left">
+                            <div class="balance-icon">💰</div>
+                            <div>
+                                <div class="balance-name">Total Revenus</div>
+                            </div>
+                        </div>
+                        <div class="balance-value positive" id="stats-total-income">0</div>
+                    </div>
+                    <div class="balance-item">
+                        <div class="balance-left">
+                            <div class="balance-icon">💸</div>
+                            <div>
+                                <div class="balance-name">Total Depenses</div>
+                            </div>
+                        </div>
+                        <div class="balance-value negative" id="stats-total-expense">0</div>
+                    </div>
+                    <div class="balance-item">
+                        <div class="balance-left">
+                            <div class="balance-icon">🔒</div>
+                            <div>
+                                <div class="balance-name">Epargne Accumulee</div>
+                            </div>
+                        </div>
+                        <div class="balance-value positive" id="stats-total-savings">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ TAB: SETTINGS ============ -->
+        <div id="tab-settings" class="tab-content">
+            <!-- Theme Selection -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Theme</span>
+                </div>
+                <div class="theme-grid">
+                    <div class="theme-option active" data-theme="dark" onclick="setTheme('dark')">
+                        <div class="theme-preview" style="background: linear-gradient(135deg, #1a1a2e 0%, #63... (file continues)
