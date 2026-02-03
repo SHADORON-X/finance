@@ -1,0 +1,143 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #020617;
+  --bg-secondary: #0f172a;
+  --bg-tertiary: #1e293b;
+  --accent: #f59e0b;
+  --accent-hover: #d97706;
+  --accent-glow: rgba(245, 158, 11, 0.15);
+  --glass-bg: rgba(15, 23, 42, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.05);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --positive: #10b981;
+  --negative: #f43f5e;
+  --border: #334155;
+  --radius-md: 1rem;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Outfit', sans-serif;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* --- TYPOGRAPHIE --- */
+h1,
+h2,
+h3,
+h4,
+.font-heading {
+  letter-spacing: -0.025em;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* --- SCROLLBAR --- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* --- COMPOSANTS UI DU GUERRIER --- */
+
+/* Boutons */
+.btn {
+  @apply px-4 py-2 rounded-xl font-bold transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.btn-primary {
+  @apply bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 border border-amber-400/50;
+}
+
+/* Inputs */
+.input {
+  @apply bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2.5 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/50 transition-all text-white placeholder-slate-500;
+}
+
+/* Cartes Premium */
+.card {
+  @apply bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-2xl shadow-xl transition-all duration-300;
+}
+
+.card:hover {
+  @apply border-white/10 shadow-2xl transform -translate-y-1;
+}
+
+.card-gold {
+  @apply bg-gradient-to-br from-amber-950/30 to-slate-900 border-amber-500/20 hover:border-amber-500/40 shadow-lg shadow-amber-900/10;
+}
+
+/* Animations */
+.fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.animate-pulse-slow {
+  animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Utilitaires Specifiques */
+.text-gradient-gold {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-600;
+}
+
+.glass {
+  @apply bg-slate-900/70 backdrop-blur-lg border border-white/10;
+}
+
+/* Wrapper pour centrer le contenu Dashboard */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Masquer la scrollbar tout en gardant le scroll */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
