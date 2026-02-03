@@ -54,7 +54,7 @@ const DashboardPage = () => {
 
             let recents = [];
             try {
-                const { data } = await import('../services/transactionService').then(m => m.getTransactions(user.id, 3));
+                const { data } = await getTransactions(user.id, 3);
                 recents = data || [];
             } catch (e) { }
 
