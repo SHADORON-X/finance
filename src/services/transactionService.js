@@ -148,23 +148,26 @@ export const createExpense = async (userId, amount, categoryId, note = '', isSyn
 
         if (transError) throw transError;
 
-        // Update Balance
-        const { data: currentBalance } = await supabase
-            .from('balances')
-            .select('amount')
-            .eq('user_id', userId)
-            .eq('category_id', categoryId)
-            .single();
+        // Update Balance only if category_id is provided
+        if (categoryId) {
+            const { data: currentBalance } = await supabase
+                .from('balances')
+                .select('amount')
+                .eq('user_id', userId)
+                .eq('category_id', categoryId)
+                .single();
 
-        const newAmount = (currentBalance?.amount || 0) - amount;
+            const newAmount = (currentBalance?.amount || 0) - amount;
 
-        await supabase
-            .from('balances')
-            .upsert({
-                user_id: userId,
-                category_id: categoryId,
-                amount: newAmount
-            }, { onConflict: 'user_id,category_id' });
+            await supabase
+                .from('balances')
+                .upsert({
+                    user_id: userId,
+                    category_id: categoryId,
+                    amount: newAmount
+                }, { onConflict: 'user_id,category_id' });
+        }
+
 
         if (!isSyncing) {
             await updateStreak(userId);
@@ -309,4 +312,44 @@ export const getTransactionStats = async (userId) => {
 
     stats.netBalance = stats.totalIncome - stats.totalExpense;
     return stats;
+};
+
+/**
+ * Calculer l'historique de la fortune nette basé sur les transactions réelles
+ */
+export const getHistoricalNetWorth = async (userId) => {
+    try {
+        const { data: transactions, error } = await supabase
+            .from('transactions')
+            .select('type, amount, timestamp')
+            .eq('user_id', userId)
+            .order('timestamp', { ascending: true });
+
+        if (error) throw error;
+
+        if (!transactions || transactions.length === 0) {
+            return { labels: [], values: [] };
+        }
+
+        let runningBalance = 0;
+        const consolidated = {};
+
+        transactions.forEach(t => {
+            if (t.type === 'income') {
+                runningBalance += t.amount;
+            } else {
+                runningBalance -= t.amount;
+            }
+            const dateStr = new Date(t.timestamp).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+            consolidated[dateStr] = runningBalance;
+        });
+
+        return {
+            labels: Object.keys(consolidated),
+            values: Object.values(consolidated)
+        };
+    } catch (error) {
+        console.error("Error fetching historical net worth:", error);
+        return { labels: [], values: [] };
+    }
 };

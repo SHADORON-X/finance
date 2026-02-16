@@ -68,40 +68,48 @@ export const createDebt = async (userId, debtData) => {
     return data;
 };
 
+import { createExpense } from './transactionService';
+
 /**
  * Ajouter un remboursement (Paiement)
  */
-export const addDebtPayment = async (debtId, userId, paymentAmount) => {
+export const addDebtPayment = async (debtId, userId, paymentAmount, creditorName = "Créancier") => {
     if (!navigator.onLine) {
         addToQueue(ACTIONS.PAY_DEBT, { debtId, userId, amount: paymentAmount });
         return { status: 'mock_success' };
     }
 
     try {
-        // 1. Récupérer la dette actuelle
+        // 1. Récupérer la dette actuelle pour vérification
         const { data: debt, error: fetchError } = await supabase
             .from('debts')
-            .select('remaining_amount, total_amount')
+            .select('remaining_amount, total_amount, creditor_name')
             .eq('id', debtId)
             .single();
 
         if (fetchError) throw fetchError;
 
-        // 2. Calculer le nouveau montant
+        // 2. Créer une transaction de dépense liée
+        // On essaie de trouver une catégorie 'Dettes' ou 'Liberté', sinon on utilise un ID générique
+        // Pour l'instant, on va créer la dépense sans catégorie spécifique ou avec une note explicite
+        await createExpense(userId, paymentAmount, null, `Remboursement dette : ${debt.creditor_name}`);
+
+        // 3. Calculer le nouveau montant
         const newRemaining = Math.max(0, debt.remaining_amount - paymentAmount);
         const newStatus = newRemaining === 0 ? 'paid' : 'active';
 
-        // 3. Mettre à jour la dette
+        // 4. Mettre à jour la dette
         const { data: updatedDebt, error: updateError } = await supabase
             .from('debts')
             .update({
                 remaining_amount: newRemaining,
                 status: newStatus,
-                last_payment_date: new Date().toISOString()
+                paid_at: newRemaining === 0 ? new Date().toISOString() : null
             })
             .eq('id', debtId)
             .select()
             .single();
+
 
         if (updateError) throw updateError;
 
@@ -112,6 +120,7 @@ export const addDebtPayment = async (debtId, userId, paymentAmount) => {
         throw error;
     }
 };
+
 
 /**
  * Supprimer une dette

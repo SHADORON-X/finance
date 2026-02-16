@@ -4,12 +4,14 @@ import Header from './Header';
 
 const Layout = () => {
     return (
-        <div className="min-h-screen bg-[var(--bg-primary)]">
-            <Header />
-            <main className="max-w-[480px] mx-auto px-4 pb-24 pt-20">
-                <Outlet />
-            </main>
+        <div className="min-h-screen bg-[var(--bg-primary)] flex">
             <BottomNav />
+            <div className="flex-1 flex flex-col">
+                <Header />
+                <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 pb-24 md:pb-8 pt-20">
+                    <Outlet />
+                </main>
+            </div>
         </div>
     );
 };

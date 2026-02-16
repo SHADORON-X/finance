@@ -2,293 +2,271 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Wallet, TrendingUp, TrendingDown, Target,
-    Zap, Calendar, ArrowRight, Shield, Bot, ScrollText
+    Zap, Calendar, ArrowRight, Shield, Bot, ScrollText, Flame, Crown, Gem, Sword,
+    AlertCircle, Search, Trophy, Map
 } from 'lucide-react';
 import { useAuthStore } from '../store';
-import { getBalances, getTotalBalance, getTotalAvailableBalance, getSavingsBalance } from '../services/balanceService';
-import { getTransactions } from '../services/transactionService'; // Suppose this exists, otherwise we'll fetch basic
+import { getTotalBalance, getTotalAvailableBalance, getSavingsBalance } from '../services/balanceService';
+import { getTransactions, getHistoricalNetWorth } from '../services/transactionService';
 import { getGamificationData, getCurrentRank } from '../services/gamificationService';
 import { getGoals } from '../services/goalService';
-import { getFinancialAdvice, getProactiveWisdom } from '../services/aiService';
+import { getProactiveWisdom, detectFinancialLeaks } from '../services/aiService';
 import { getDebts } from '../services/debtService';
+import { getActiveMissions } from '../services/missionService';
 import { Link } from 'react-router-dom';
+
+// Composants de Guerre
+import WarRoomChart from '../components/WarRoomChart';
+import ConquestSimulator from '../components/ConquestSimulator';
+
+const RICHE_LAWS = [
+    { id: 1, text: "Commence à garnir ta bourse : Épargne 10% de tout ce que tu gagnes.", ref: "L'Homme le plus riche de Babylone" },
+    { id: 2, text: "Contrôle tes denses : Ne confonds pas tes besoins avec tes désirs.", ref: "La Loi de la Richesse" },
+    { id: 3, text: "Fais fructifier ton or : Ton capital doit travailler pour toi.", ref: "Sagesse Ancienne" }
+];
 
 const DashboardPage = () => {
     const { user } = useAuthStore();
     const [loading, setLoading] = useState(true);
-    const [finances, setFinances] = useState({
-        total: 0,
-        available: 0,
-        savings: 0,
-        recentTransactions: []
-    });
+    const [finances, setFinances] = useState({ total: 0, available: 0, savings: 0, recentTransactions: [] });
     const [gamification, setGamification] = useState(null);
     const [goalsCount, setGoalsCount] = useState(0);
-    const [oracleAdvice, setOracleAdvice] = useState('');
     const [decreeBatch, setDecreeBatch] = useState([]);
     const [currentDecreeIndex, setCurrentDecreeIndex] = useState(0);
+    const [currentLawIndex, setCurrentLawIndex] = useState(0);
+
+    // Nouveaux Modules
+    const [missions, setMissions] = useState([]);
+    const [leakReport, setLeakReport] = useState(null);
+    const [isAnalyzingLeaks, setIsAnalyzingLeaks] = useState(false);
+    const [historicalData, setHistoricalData] = useState({ labels: [], values: [] });
 
     useEffect(() => {
         loadDashboardData();
+        const lawTimer = setInterval(() => setCurrentLawIndex(prev => (prev + 1) % RICHE_LAWS.length), 20000);
+        return () => clearInterval(lawTimer);
     }, [user.id]);
-
-    useEffect(() => {
-        if (decreeBatch.length > 0) {
-            const timer = setInterval(() => {
-                setCurrentDecreeIndex((prev) => (prev + 1) % decreeBatch.length);
-            }, 15000); // Change toutes les 15 secondes
-            return () => clearInterval(timer);
-        }
-    }, [decreeBatch]);
 
     const loadDashboardData = async () => {
         try {
-            const [total, available, savings, gamifData, goals, debts] = await Promise.all([
+            // Étape 1 : Charger les données vitales en parallèle (Vitesse de Guerre)
+            const [total, available, savings, gamifData, goals, debts, transactionsData, historical] = await Promise.all([
                 getTotalBalance(user.id),
                 getTotalAvailableBalance(user.id),
                 getSavingsBalance(user.id),
                 getGamificationData(user.id),
                 getGoals(user.id),
-                getDebts(user.id)
+                getDebts(user.id),
+                getTransactions(user.id, 5).catch(() => ({ data: [] })),
+                getHistoricalNetWorth(user.id)
             ]);
 
-            let recents = [];
-            try {
-                const { data } = await getTransactions(user.id, 3);
-                recents = data || [];
-            } catch (e) { }
+            const recents = transactionsData?.data || [];
 
+            // Étape 2 : Mettre à jour l'interface immédiatement
             setFinances({ total, available, savings, recentTransactions: recents });
             setGamification(gamifData);
             setGoalsCount(goals.length);
+            setMissions(getActiveMissions(gamifData?.xp || 0));
+            setHistoricalData(historical);
 
-            // Récupérer un lot de décrets
-            const wisdomBatch = await getProactiveWisdom({ totalBalance: total, debts, goals });
-            setDecreeBatch(Array.isArray(wisdomBatch) ? wisdomBatch : [wisdomBatch]);
+            // Étape 3 : Libérer l'interface (Finn du chargement bloquant)
+            setLoading(false);
 
-            generateOracleAdvice(total, gamifData);
+            // Étape 4 : Charger la Sagesse de l'Oracle en arrière-plan (Post-rendu)
+            getProactiveWisdom({ totalBalance: total, debts, goals })
+                .then(wisdomBatch => {
+                    setDecreeBatch(Array.isArray(wisdomBatch) ? wisdomBatch : [wisdomBatch]);
+                })
+                .catch(err => console.error("Oracle error in background", err));
+
         } catch (error) {
             console.error("Dashboard error", error);
-        } finally {
             setLoading(false);
         }
     };
 
-    const generateOracleAdvice = async (balance, gamif) => {
-        const advice = await getFinancialAdvice({
-            balance,
-            streak: gamif?.current_streak || 0
-        });
-        setOracleAdvice(advice);
+    const runLeakDetection = async () => {
+        setIsAnalyzingLeaks(true);
+        try {
+            const report = await detectFinancialLeaks(finances.recentTransactions);
+            setLeakReport(report);
+        } catch (error) { console.error(error); }
+        finally { setIsAnalyzingLeaks(false); }
     };
 
     const formatCurrency = (amount) => Math.round(amount).toLocaleString('fr-FR');
     const rank = gamification ? getCurrentRank(gamification.xp) : { name: 'Recrue', icon: '🎖️' };
 
-    if (loading) return <div className="p-10 text-center animate-pulse text-amber-500">Chargement du QG...</div>;
-
-    const currentDecree = decreeBatch[currentDecreeIndex] || "La sagesse est le premier pas vers la richesse.";
+    if (loading) return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+            <div className="relative w-24 h-24">
+                <div className="absolute inset-0 border-4 border-amber-500/20 border-t-amber-500 rounded-full animate-spin"></div>
+                <Crown className="absolute inset-0 m-auto text-amber-500 animate-pulse" size={32} />
+            </div>
+            <p className="font-ancient text-amber-500 tracking-[0.3em] text-xs animate-pulse uppercase">DÉPLOIEMENT DU CENTRE DE COMMANDEMENT...</p>
+        </div>
+    );
 
     return (
-        <div className="space-y-6 fade-in pb-24">
-            {/* HEADER: WELCOME + DECRET */}
-            <div className="flex flex-col gap-4">
-                {/* Welcome Card & Oracle Decree */}
-                <div className="relative group">
-                    <div className="absolute inset-0 bg-gradient-to-r from-amber-500/20 to-purple-600/20 blur-xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
-                    <div className="card p-6 relative overflow-hidden bg-slate-950/80 border-amber-500/10">
-                        {/* Background Decoration */}
-                        <div className="absolute top-0 right-0 p-4 opacity-5">
-                            <Bot size={120} />
-                        </div>
+        <div className="space-y-12 fade-in pb-24 max-w-7xl mx-auto px-4">
 
-                        <div className="relative z-10 space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-2xl shadow-lg shadow-amber-900/40">
-                                        {rank.icon}
+            {/* --- TOP BANNER: RANK & WEALTH --- */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="card-warrior p-6 bg-slate-950/60 flex items-center gap-6">
+                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-700 flex items-center justify-center text-4xl shadow-2xl border border-amber-300/30">
+                        {rank.icon}
+                    </div>
+                    <div>
+                        <div className="text-[10px] font-black text-amber-500 uppercase tracking-[0.3em] font-ancient">Monarque Impérial</div>
+                        <h2 className="text-3xl font-black text-white font-ancient tracking-tight uppercase">{user.user_metadata?.username || 'Guerrier'}</h2>
+                        <div className="rank-badge mt-2">{rank.name}</div>
+                    </div>
+                </div>
+
+                <div className="lg:col-span-2 card-warrior p-6 bg-gradient-to-r from-slate-900 to-slate-950 flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div>
+                        <div className="text-[10px] font-black text-amber-500 uppercase tracking-[0.3em] font-ancient flex items-center gap-2">
+                            <Gem size={14} /> Trésorerie de l'Empire
+                        </div>
+                        <div className="flex items-baseline gap-2 mt-1">
+                            <span className="heading-gold text-5xl">{formatCurrency(finances.total)}</span>
+                            <span className="text-amber-500 font-ancient font-bold text-sm">FCFA</span>
+                        </div>
+                    </div>
+                    <div className="flex gap-4">
+                        <Link to="/transactions" className="btn-empire-primary px-6 text-xs">NOUVELLE CONQUÊTE</Link>
+                    </div>
+                </div>
+            </div>
+
+            {/* --- MODULE 1: THE WAR ROOM (Graphique) --- */}
+            <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                    <Map size={24} className="text-amber-500" />
+                    <h3 className="text-xl font-ancient font-black text-white tracking-[0.2em] uppercase">La War Room</h3>
+                </div>
+                <div className="card-warrior p-8 h-[400px]">
+                    <WarRoomChart dataPoints={historicalData} />
+                </div>
+            </div>
+
+            {/* --- MODULE 2 & 3: LEAKS & MISSIONS --- */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Détecteur de Fuites */}
+                <div className="card-warrior p-8 bg-rose-950/5 border-rose-500/20">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="font-ancient font-black text-white tracking-widest flex items-center gap-2">
+                            <Search size={18} className="text-rose-500" /> DÉTECTEUR DE FUITES
+                        </h3>
+                        <button
+                            onClick={runLeakDetection}
+                            disabled={isAnalyzingLeaks}
+                            className={`p-2 rounded-lg bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all ${isAnalyzingLeaks ? 'animate-spin' : ''}`}
+                        >
+                            <Zap size={16} />
+                        </button>
+                    </div>
+
+                    {leakReport ? (
+                        <div className="bg-slate-950/80 p-6 rounded-2xl border border-rose-500/20 prose prose-invert prose-xs max-w-none">
+                            <div className="whitespace-pre-wrap font-ancient text-slate-300 italic text-sm">
+                                {leakReport}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="text-center py-12 flex flex-col items-center">
+                            <AlertCircle size={40} className="text-slate-800 mb-4" />
+                            <p className="text-xs text-slate-500 uppercase font-black tracking-widest">Aucune analyse de sabotage en cours</p>
+                            <button onClick={runLeakDetection} className="mt-4 text-rose-500 font-bold text-xs hover:underline uppercase tracking-widest">Lancer le scan de l'Oracle</button>
+                        </div>
+                    )}
+                </div>
+
+                {/* Missions de Guerre */}
+                <div className="card-warrior p-8 bg-amber-500/5 border-amber-500/20">
+                    <h3 className="font-ancient font-black text-white tracking-widest flex items-center gap-2 mb-6 uppercase">
+                        <Trophy size={18} className="text-amber-500" /> Missions Royales
+                    </h3>
+                    <div className="space-y-4">
+                        {missions.map(m => (
+                            <div key={m.id} className="flex items-center justify-between p-4 rounded-xl bg-slate-950/40 border border-white/5 hover:border-amber-500/30 transition-all group">
+                                <div className="flex items-center gap-4">
+                                    <span className="text-2xl">{m.icon}</span>
+                                    <div>
+                                        <div className="font-ancient font-bold text-sm text-white group-hover:text-amber-500 transition-colors uppercase">{m.title}</div>
+                                        <div className="text-[10px] text-slate-500 leading-tight mt-0.5">{m.description}</div>
+                                    </div>
+                                </div>
+                                <div className="text-amber-500 font-mono font-black text-xs">+{m.reward} XP</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* --- MODULE 4: CONQUEST SIMULATOR --- */}
+            <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                    <Map size={24} className="text-orange-500" />
+                    <h3 className="text-xl font-ancient font-black text-white tracking-[0.2em] uppercase">Projection de Puissance</h3>
+                </div>
+                <ConquestSimulator initialBalance={finances.total} />
+            </div>
+
+            {/* --- MODULE 5: LAWS & JOURNAL --- */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Journal des Conquêtes */}
+                <div className="lg:col-span-2 card-warrior p-8">
+                    <h3 className="text-lg font-ancient font-black text-white mb-8 tracking-widest uppercase flex items-center gap-3">
+                        <Sword size={20} className="text-slate-500" /> Journal des Conquêtes
+                    </h3>
+                    <div className="space-y-3">
+                        {finances.recentTransactions.slice(0, 5).map((t, idx) => (
+                            <div key={idx} className="flex justify-between items-center p-4 rounded-xl bg-white/5 border border-white/5 hover:border-amber-500/20 transition-all">
+                                <div className="flex items-center gap-4">
+                                    <div className={`p-2 rounded-lg ${t.type === 'income' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                                        <Wallet size={16} />
                                     </div>
                                     <div>
-                                        <div className="text-[10px] font-black text-amber-500 uppercase tracking-[0.2em]">Empire de</div>
-                                        <div className="text-xl font-black text-white">{user.user_metadata?.username || 'Guerrier'}</div>
+                                        <div className="text-xs font-bold text-white uppercase font-ancient">{t.categories?.name || (t.type === 'income' ? 'REVENU' : 'DÉPENSE')}</div>
+                                        <div className="text-[10px] text-slate-500 font-mono">{new Date(t.timestamp).toLocaleDateString()}</div>
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    <div className="text-[10px] font-bold text-slate-500 uppercase">Rang Actuel</div>
-                                    <div className="text-sm font-bold text-amber-200">{rank.name}</div>
-                                </div>
+                                <span className={`font-mono font-black ${t.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                    {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
+                                </span>
                             </div>
-
-                            {/* Oracle Decree - Rotating with AnimatePresence */}
-                            <div className="bg-gradient-to-r from-amber-500/10 to-transparent border-l-2 border-amber-500 p-4 rounded-r-lg min-h-[80px] flex flex-col justify-center">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <ScrollText size={14} className="text-amber-500" />
-                                    <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">Le Décret de l'Oracle</span>
-                                </div>
-                                <div className="overflow-hidden">
-                                    <AnimatePresence mode="wait">
-                                        <motion.p
-                                            key={currentDecreeIndex}
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, y: -10 }}
-                                            transition={{ duration: 0.5 }}
-                                            className="text-sm sm:text-base text-slate-200 leading-relaxed font-serif italic"
-                                        >
-                                            "{currentDecree}"
-                                        </motion.p>
-                                    </AnimatePresence>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Total Balance Card */}
-                <div className="card-gold p-6 flex flex-col justify-between relative overflow-hidden group">
-                    <div className="absolute -right-6 -top-6 bg-amber-500/20 w-32 h-32 rounded-full blur-2xl group-hover:bg-amber-500/30 transition-all"></div>
-
-                    <div>
-                        <div className="flex items-center gap-2 text-amber-200/80 mb-1">
-                            <Shield size={14} />
-                            <span className="text-[10px] font-bold uppercase tracking-wider">Patrimoine Total</span>
-                        </div>
-                        <div className="text-3xl font-mono font-bold text-white tracking-tight">
-                            {formatCurrency(finances.total)} <span className="text-sm text-amber-500">FCFA</span>
-                        </div>
-                    </div>
-
-                    <div className="mt-4 pt-4 border-t border-amber-500/10 flex justify-between items-end">
-                        <div className="min-w-0">
-                            <div className="text-[9px] text-amber-200/50 uppercase font-bold truncate">Disponible</div>
-                            <div className="text-base font-bold text-white truncate">{formatCurrency(finances.available)}</div>
-                        </div>
-                        <div className="text-right min-w-0 pl-2">
-                            <div className="text-[9px] text-amber-200/50 uppercase font-bold truncate">Épargne</div>
-                            <div className="text-base font-bold text-emerald-400 flex items-center gap-1 justify-end truncate">
-                                <Wallet size={12} />
-                                {formatCurrency(finances.savings)}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* QUICK STATS GRID */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatMetric
-                    icon={<Zap size={20} className="text-yellow-400" />}
-                    label="Mood"
-                    value={`${gamification?.current_streak || 0} Jours`}
-                    sub="Série en cours"
-                />
-                <StatMetric
-                    icon={<Target size={20} className="text-blue-400" />}
-                    label="Cibles"
-                    value={goalsCount}
-                    sub="Objectifs actifs"
-                />
-                <Link to="/transactions" className="card p-4 hover:bg-slate-800/50 transition-colors group cursor-pointer border border-dashed border-slate-700 hover:border-emerald-500/50 flex flex-col justify-center items-center text-center">
-                    <div className="bg-emerald-500/20 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
-                        <TrendingUp className="text-emerald-400" size={24} />
-                    </div>
-                    <span className="text-xs font-bold text-emerald-400 uppercase">Ajouter Revenu</span>
-                </Link>
-                <Link to="/transactions" className="card p-4 hover:bg-slate-800/50 transition-colors group cursor-pointer border border-dashed border-slate-700 hover:border-rose-500/50 flex flex-col justify-center items-center text-center">
-                    <div className="bg-rose-500/20 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
-                        <TrendingDown className="text-rose-400" size={24} />
-                    </div>
-                    <span className="text-xs font-bold text-rose-400 uppercase">Ajouter Dépense</span>
-                </Link>
-            </div>
-
-            {/* RECENT ACTIVITY & GOALS PREVIEW */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Recent Activity */}
-                <div className="card p-6">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-lg font-bold flex items-center gap-2">
-                            <Calendar className="text-slate-400" size={18} />
-                            Activité Récente
-                        </h3>
-                        <Link to="/transactions" className="text-xs text-amber-500 hover:text-amber-400 flex items-center gap-1">
-                            Voir tout <ArrowRight size={12} />
-                        </Link>
-                    </div>
-
-                    <div className="space-y-4">
-                        {finances.recentTransactions.length > 0 ? (
-                            finances.recentTransactions.map((t, idx) => (
-                                <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-slate-950/50 border border-slate-800 hover:border-slate-700 transition-colors">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${t.type === 'income' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'
-                                            }`}>
-                                            {t.type === 'income' ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                                        </div>
-                                        <div>
-                                            <div className="font-bold text-sm text-white">
-                                                {t.categories?.name || (t.type === 'income' ? 'Revenu' : 'Dépense')}
-                                            </div>
-                                            <div className="text-xs text-slate-500">
-                                                {new Date(t.timestamp).toLocaleDateString()}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className={`font-mono font-bold ${t.type === 'income' ? 'text-emerald-400' : 'text-slate-200'
-                                        }`}>
-                                        {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="text-center py-8 text-slate-500 text-sm">
-                                Calme plat sur le front...
-                            </div>
+                        ))}
+                        {finances.recentTransactions.length === 0 && (
+                            <p className="text-center py-8 text-slate-600 font-ancient text-xs">Aucune conquête récente inscrite dans les registres.</p>
                         )}
                     </div>
                 </div>
 
-                {/* Quick Actions / Navigation */}
-                <div className="grid grid-rows-2 gap-4">
-                    <Link to="/goals" className="card relative overflow-hidden group p-6 flex flex-col justify-center hover:bg-slate-800/80 transition-all border-l-4 border-l-blue-500">
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <Target size={80} />
-                        </div>
-                        <h3 className="text-xl font-bold text-white mb-1">Objectifs</h3>
-                        <p className="text-sm text-slate-400 mb-4 max-w-[80%]">Visualisez vos cibles et suivez votre progression vers la richesse.</p>
-                        <span className="text-xs font-bold text-blue-400 flex items-center gap-1 group-hover:gap-2 transition-all">
-                            Voir mes rêves <ArrowRight size={14} />
-                        </span>
-                    </Link>
-
-                    <Link to="/ai-advisor" className="card relative overflow-hidden group p-6 flex flex-col justify-center hover:bg-slate-800/80 transition-all border-l-4 border-l-purple-500">
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <Zap size={80} />
-                        </div>
-                        <h3 className="text-xl font-bold text-white mb-1">Conseiller IA</h3>
-                        <p className="text-sm text-slate-400 mb-4 max-w-[80%]">Discutez stratégie avec l'Oracle pour optimiser vos finances.</p>
-                        <span className="text-xs font-bold text-purple-400 flex items-center gap-1 group-hover:gap-2 transition-all">
-                            Consulter l'Oracle <ArrowRight size={14} />
-                        </span>
-                    </Link>
+                {/* Les Lois Sacrées */}
+                <div className="card-warrior p-8 bg-amber-500/5 relative overflow-hidden flex flex-col justify-between border-amber-500/20">
+                    <div>
+                        <h3 className="font-ancient font-black text-white tracking-widest mb-4 uppercase flex items-center gap-2">
+                            <ScrollText size={18} className="text-amber-500" /> Les Lois Sacrées
+                        </h3>
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={currentLawIndex}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="italic font-ancient text-amber-200/80 leading-relaxed text-sm p-4 bg-amber-500/5 rounded-xl border border-amber-500/10"
+                            >
+                                "{RICHE_LAWS[currentLawIndex].text}"
+                            </motion.div>
+                        </AnimatePresence>
+                    </div>
+                    <Link to="/ai-advisor" className="btn-empire-primary w-full mt-6 text-center text-[10px] py-4">CONSULTER L'ORACLE</Link>
                 </div>
             </div>
         </div>
     );
 };
-
-// Mini Composant pour les stats simples
-const StatMetric = ({ icon, label, value, sub }) => (
-    <div className="card p-4 flex flex-col justify-between hover:bg-slate-800/40">
-        <div className="flex justify-between items-start mb-2">
-            <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{label}</div>
-            <div className="opacity-80">{icon}</div>
-        </div>
-        <div>
-            <div className="text-xl font-bold text-white tracking-tight">{value}</div>
-            {sub && <div className="text-[10px] text-slate-500">{sub}</div>}
-        </div>
-    </div>
-);
 
 export default DashboardPage;

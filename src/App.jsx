@@ -15,6 +15,7 @@ import DebtsPage from './pages/DebtsPage';
 import ProgressPage from './pages/ProgressPage';
 import SettingsPage from './pages/SettingsPage';
 import AIAdvisorPage from './pages/AIAdvisorPage';
+import AllocationPage from './pages/AllocationPage';
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -51,6 +52,10 @@ function App() {
 
     return (
         <>
+            {/* Effets de Cockpit globaux */}
+            <div className="cockpit-overlay" />
+            <div className="cockpit-vignette" />
+
             <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <Routes>
                     {/* Routes publiques */}
@@ -65,6 +70,7 @@ function App() {
                             <Route path="/goals" element={<GoalsPage />} />
                             <Route path="/debts" element={<DebtsPage />} />
                             <Route path="/progress" element={<ProgressPage />} />
+                            <Route path="/allocation" element={<AllocationPage />} />
                             <Route path="/ai-advisor" element={<AIAdvisorPage />} />
                             <Route path="/settings" element={<SettingsPage />} />
                         </Route>

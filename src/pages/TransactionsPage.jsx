@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     TrendingUp, TrendingDown, Plus, Filter, Search,
-    Calendar, ArrowUpRight, ArrowDownLeft, Trash2,
-    MoreHorizontal, Sparkles, AlertTriangle, X, Target
+    ArrowUpRight, ArrowDownLeft, Trash2,
+    Sparkles, X, Target, Wallet, Briefcase, Gift, Sword, Gem, AlertCircle
 } from 'lucide-react';
 import { useAuthStore } from '../store';
 import { getTransactions, createIncome, createExpense, deleteTransaction, getTransactionStats } from '../services/transactionService';
@@ -11,6 +11,13 @@ import { getCategories } from '../services/balanceService';
 import { getGoals, contributeToGoal } from '../services/goalService';
 import { analyzeTransaction } from '../services/aiService';
 import toast from 'react-hot-toast';
+
+const INCOME_SOURCES = [
+    { id: 'salary', name: 'Salaire', icon: <Briefcase size={20} />, color: 'emerald' },
+    { id: 'business', name: 'Business', icon: <TrendingUp size={20} />, color: 'blue' },
+    { id: 'gift', name: 'Cadeau', icon: <Gift size={20} />, color: 'purple' },
+    { id: 'other', name: 'Autre', icon: <Wallet size={20} />, color: 'slate' }
+];
 
 const TransactionsPage = () => {
     const { user } = useAuthStore();
@@ -21,18 +28,18 @@ const TransactionsPage = () => {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [transactionType, setTransactionType] = useState('expense'); // expense, income, goal
+    const [transactionType, setTransactionType] = useState('expense');
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Form data
     const [amount, setAmount] = useState('');
     const [categoryId, setCategoryId] = useState('');
+    const [sourceId, setSourceId] = useState('salary');
     const [goalId, setGoalId] = useState('');
     const [note, setNote] = useState('');
 
     useEffect(() => {
-        loadData();
-    }, [user.id]);
+        if (user) loadData();
+    }, [user]);
 
     const loadData = async () => {
         try {
@@ -46,12 +53,10 @@ const TransactionsPage = () => {
             setCategories(catsData);
             setGoals(goalsData);
             setStats(statsData);
-
             if (catsData.length > 0) setCategoryId(catsData[0].id);
             if (goalsData.length > 0) setGoalId(goalsData[0].id);
-
         } catch (error) {
-            toast.error("Erreur de chargement");
+            toast.error("Échec des archives");
         } finally {
             setLoading(false);
         }
@@ -63,17 +68,18 @@ const TransactionsPage = () => {
             const val = parseFloat(amount);
             if (isNaN(val) || val <= 0) return toast.error("Montant invalide");
 
+            const loadingToast = toast.loading("Enregistrement de la conquête...");
             if (transactionType === 'income') {
-                await createIncome(user.id, val, categories);
-                toast.success(" Revenu ajouté !");
+                await createIncome(user.id, val, []);
+                toast.success(`Trésor augmenté de ${formatCurrency(val)} !`, { id: loadingToast });
             } else if (transactionType === 'expense') {
                 if (!categoryId) return toast.error("Catégorie requise");
                 await createExpense(user.id, val, categoryId, note);
-                toast.success("Dépense enregistrée");
+                toast.success("Dépense stratégique enregistrée", { id: loadingToast });
             } else if (transactionType === 'goal') {
                 if (!goalId) return toast.error("Objectif requis");
                 await contributeToGoal(goalId, user.id, val);
-                toast.success("Contribution versée !");
+                toast.success("Renfort envoyé vers l'objectif !", { id: loadingToast });
             }
 
             setIsAddModalOpen(false);
@@ -81,407 +87,212 @@ const TransactionsPage = () => {
             setNote('');
             loadData();
         } catch (error) {
-            console.error(error);
-            toast.error("Erreur lors de l'enregistrement");
+            toast.error("Erreur de déploiement");
         }
     };
 
-    // Modale de Suppression
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [transactionToDelete, setTransactionToDelete] = useState(null);
-
-    const handleDelete = (transaction) => {
-        setTransactionToDelete(transaction);
-        setIsDeleteModalOpen(true);
-    };
-
-    const confirmDelete = async () => {
-        if (!transactionToDelete) return;
+    const handleAnalyze = async (t) => {
+        const toastId = toast.loading("L'Oracle médite...");
         try {
-            await deleteTransaction(transactionToDelete.id, user.id);
-            toast.success("Transaction anéantie");
-            loadData();
-            setIsDeleteModalOpen(false);
-            setTransactionToDelete(null);
-        } catch (error) {
-            toast.error("Échec de la destruction");
-        }
-    };
-
-    const handleAnalyze = async (transaction) => {
-        const toastId = toast.loading("L'Oracle analyse cette transaction...");
-        try {
-            const advice = await analyzeTransaction(transaction);
-
-            toast.custom((t) => (
-                <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-slate-800 shadow-2xl rounded-lg pointer-events-auto flex border border-amber-500/30`}>
-                    <div className="flex-1 w-0 p-4">
-                        <div className="flex items-start">
-                            <div className="flex-shrink-0 pt-0.5">
-                                <Sparkles className="h-10 w-10 text-amber-500" />
-                            </div>
-                            <div className="ml-3 flex-1">
-                                <p className="text-sm font-medium text-amber-500">
-                                    Analyse de l'Oracle
-                                </p>
-                                <p className="mt-1 text-sm text-slate-300">
-                                    {advice || "Le silence est parfois la meilleure réponse..."}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex border-l border-slate-700">
-                        <button
-                            onClick={() => toast.dismiss(t.id)}
-                            className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-amber-500 hover:text-amber-400 focus:outline-none"
-                        >
-                            Fermer
-                        </button>
+            const advice = await analyzeTransaction(t);
+            toast.dismiss(toastId);
+            toast((rt) => (
+                <div className="flex items-start gap-3">
+                    <div className="bg-amber-500/10 p-2 rounded-lg text-amber-500"><Sparkles size={24} /></div>
+                    <div>
+                        <h4 className="font-ancient font-black text-amber-500 text-xs tracking-widest uppercase">Décret de l'Oracle</h4>
+                        <p className="text-sm text-slate-300 mt-1 italic font-ancient">"{advice}"</p>
                     </div>
                 </div>
-            ), { id: toastId, duration: 8000 });
-
-        } catch (error) {
-            toast.error("L'Oracle est indisponible", { id: toastId });
-        }
+            ), { duration: 8000, style: { background: '#020617', border: '1px solid rgba(245, 158, 11, 0.4)', color: '#fff' } });
+        } catch (e) { toast.error("L'Oracle est silencieux", { id: toastId }); }
     };
-
-    // Filter logic
-    const filteredTransactions = transactions.filter(t => {
-        // Simple filter based on type roughly
-        const matchesFilter = filter === 'all' || t.type === filter;
-        const matchesSearch = (t.note || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (t.categories?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (t.type === 'income' && 'revenu'.includes(searchTerm.toLowerCase())); // Bonus: trouver "Revenus" via recherche
-        return matchesFilter && matchesSearch;
-    });
 
     const formatCurrency = (amount) => Math.round(amount).toLocaleString('fr-FR') + ' FCFA';
 
+    const filteredTransactions = transactions.filter(t => {
+        const matchesFilter = filter === 'all' || t.type === filter;
+        const searchLower = searchTerm.toLowerCase();
+        return matchesFilter && ((t.note || '').toLowerCase().includes(searchLower) || (t.categories?.name || '').toLowerCase().includes(searchLower));
+    });
+
+    if (loading) return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+            <Sword className="text-amber-500 animate-bounce" size={40} />
+            <p className="font-ancient text-amber-500 text-[10px] tracking-[0.4em] uppercase">OUVERTURE DES ARCHIVES...</p>
+        </div>
+    );
+
     return (
-        <div className="space-y-6 fade-in pb-24">
-            {/* Header stats */}
-            <div className="grid grid-cols-3 gap-2">
-                <div className="card-gold p-3 flex flex-col justify-center min-w-0">
-                    <div className="text-amber-200/60 text-[9px] uppercase font-bold tracking-wider mb-1 truncate">Solde Net</div>
-                    <div className={`text-sm sm:text-lg font-bold font-mono truncate ${stats.netBalance >= 0 ? 'text-white' : 'text-rose-400'}`}>
-                        {stats.netBalance > 0 ? '+' : ''}{formatCurrency(stats.netBalance).replace(' FCFA', '')}
+        <div className="pb-32 px-4 pt-8 max-w-6xl mx-auto space-y-10">
+
+            {/* Header: Imperial Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="card-warrior p-6 bg-slate-900/60 border-blue-500/20">
+                    <div className="flex justify-between items-start mb-4">
+                        <span className="text-[10px] font-ancient font-black text-slate-500 tracking-widest uppercase">Bilan Net</span>
+                        <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500"><Gem size={16} /></div>
+                    </div>
+                    <div className={`text-3xl font-ancient font-black ${stats.netBalance >= 0 ? 'text-white' : 'text-rose-400'}`}>
+                        {formatCurrency(stats.netBalance)}
+                    </div>
+                    <div className="h-1 w-full bg-slate-800 rounded-full mt-4 overflow-hidden">
+                        <div className="h-full bg-blue-500 w-[70%]" />
                     </div>
                 </div>
-                <div className="card p-3 flex flex-col justify-center border-emerald-500/10 min-w-0">
-                    <div className="text-emerald-400/70 text-[9px] uppercase font-bold tracking-wider mb-1 truncate">Revenus</div>
-                    <div className="text-sm sm:text-lg font-bold text-emerald-400 font-mono truncate">
-                        {formatCurrency(stats.totalIncome).replace(' FCFA', '')}
+
+                <div className="card-warrior p-6 bg-slate-900/60 border-emerald-500/20">
+                    <div className="flex justify-between items-start mb-4">
+                        <span className="text-[10px] font-ancient font-black text-slate-500 tracking-widest uppercase">Perceptions</span>
+                        <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-500"><TrendingUp size={16} /></div>
                     </div>
+                    <div className="text-3xl font-ancient font-black text-emerald-400">
+                        +{formatCurrency(stats.totalIncome)}
+                    </div>
+                    <p className="text-[10px] text-slate-600 font-bold mt-2 uppercase">Gains de campagne</p>
                 </div>
-                <div className="card p-3 flex flex-col justify-center border-rose-500/10 min-w-0">
-                    <div className="text-rose-400/70 text-[9px] uppercase font-bold tracking-wider mb-1 truncate">Dépenses</div>
-                    <div className="text-sm sm:text-lg font-bold text-rose-400 font-mono truncate">
-                        {formatCurrency(stats.totalExpense).replace(' FCFA', '')}
+
+                <div className="card-warrior p-6 bg-slate-900/60 border-rose-500/20">
+                    <div className="flex justify-between items-start mb-4">
+                        <span className="text-[10px] font-ancient font-black text-slate-500 tracking-widest uppercase">Offrandes & Logistique</span>
+                        <div className="p-2 bg-rose-500/10 rounded-lg text-rose-500"><TrendingDown size={16} /></div>
                     </div>
+                    <div className="text-3xl font-ancient font-black text-rose-400">
+                        -{formatCurrency(stats.totalExpense)}
+                    </div>
+                    <p className="text-[10px] text-slate-600 font-bold mt-2 uppercase">Coûts de fonctionnement</p>
                 </div>
             </div>
 
-            {/* Actions Bar */}
-            <div className="flex flex-col md:flex-row gap-4 items-center justify-between sticky top-0 z-20 bg-slate-950/80 backdrop-blur-md p-2 rounded-xl border border-slate-800/50">
-                <div className="flex items-center gap-2 w-full md:w-auto">
-                    <div className="relative flex-1 md:flex-none">
+            {/* Actions & Filters */}
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-between sticky top-6 z-20">
+                <div className="card-warrior p-2 flex items-center gap-4 w-full md:w-auto bg-slate-950/90 backdrop-blur-md border-amber-500/20">
+                    <div className="relative flex-1 md:w-64">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
                         <input
-                            type="text"
-                            placeholder="Rechercher..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-4 py-2 text-sm focus:ring-1 focus:ring-amber-500 w-full md:w-64 transition-all"
+                            type="text" placeholder="RECHERCHER DANS LES ARCHIVES..."
+                            value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full bg-transparent border-none pl-10 pr-4 py-2 text-[10px] font-ancient font-bold tracking-widest focus:ring-0 text-white placeholder-slate-700"
                         />
                     </div>
-                    <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700">
-                        <button onClick={() => setFilter('all')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${filter === 'all' ? 'bg-slate-700 text-white' : 'text-slate-400'}`}>Tout</button>
-                        <button onClick={() => setFilter('income')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${filter === 'income' ? 'bg-emerald-900/30 text-emerald-400' : 'text-slate-400'}`}>Revenus</button>
-                        <button onClick={() => setFilter('expense')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${filter === 'expense' ? 'bg-rose-900/30 text-rose-400' : 'text-slate-400'}`}>Dépenses</button>
+                    <div className="h-4 w-[1px] bg-white/10 hidden md:block"></div>
+                    <div className="flex items-center gap-1">
+                        {['all', 'income', 'expense'].map(f => (
+                            <button
+                                key={f} onClick={() => setFilter(f)}
+                                className={`px-4 py-1.5 rounded-lg text-[9px] font-ancient font-black uppercase tracking-widest transition-all ${filter === f ? 'bg-amber-500 text-slate-950' : 'text-slate-500 hover:text-white'}`}
+                            >
+                                {f === 'all' ? 'Tout' : f === 'income' ? 'Gains' : 'Coûts'}
+                            </button>
+                        ))}
                     </div>
                 </div>
+
                 <button
                     onClick={() => { setTransactionType('expense'); setIsAddModalOpen(true); }}
-                    className="w-full md:w-auto btn btn-primary flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
+                    className="btn-empire-primary w-full md:w-auto flex items-center justify-center gap-2"
                 >
-                    <Plus size={18} /> Nouvelle Opération
+                    <Plus size={18} /> INSCRIRE UNE CONQUÊTE
                 </button>
             </div>
 
-            {/* Transactions List */}
-            <div className="space-y-3">
-                <AnimatePresence>
-                    {filteredTransactions.map((t, index) => (
+            {/* List of Transactions */}
+            <div className="space-y-4">
+                <AnimatePresence mode="popLayout">
+                    {filteredTransactions.map((t, idx) => (
                         <motion.div
-                            key={t.id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
-                            transition={{ delay: index * 0.05 }}
-                            className={`group relative overflow-hidden rounded-xl border border-slate-800 bg-slate-900/50 backdrop-blur-sm p-4 hover:bg-slate-800/80 transition-all hover:shadow-lg ${t.type === 'income' ? 'hover:shadow-emerald-900/20' : 'hover:shadow-rose-900/20'
-                                }`}
+                            key={t.id} layout initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
+                            className="card-warrior p-5 bg-slate-950/40 border-white/5 group hover:border-amber-500/30 overflow-visible relative"
                         >
-                            {/* Bordure latérale colorée */}
-                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${t.type === 'income' ? 'bg-emerald-500' : 'bg-rose-500'
-                                }`} />
-
-                            <div className="flex items-center gap-4 pl-3">
-                                {/* Icône */}
-                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg shadow-inner ${t.type === 'income'
-                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                    : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                                    }`}>
-                                    {t.type === 'income'
-                                        ? <ArrowDownLeft size={20} />
-                                        : (t.categories ? t.categories.icon : <ArrowUpRight size={20} />)
-                                    }
+                            <div className="flex items-center gap-6">
+                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl border ${t.type === 'income' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 'bg-rose-500/10 border-rose-500/20 text-rose-500'}`}>
+                                    {t.type === 'income' ? <TrendingUp size={24} /> : (t.categories?.icon || <Sword size={24} />)}
                                 </div>
-
-                                {/* Info */}
-                                <div className="flex-1 min-w-0">
+                                <div className="flex-1">
                                     <div className="flex justify-between items-start">
                                         <div>
-                                            <h3 className="font-bold text-slate-200 truncate group-hover:text-white transition-colors">
-                                                {t.type === 'income' ? 'Revenu' : (t.categories?.name || 'Dépense')}
-                                            </h3>
-                                            <p className="text-xs text-slate-500 truncate mt-0.5 font-medium">
-                                                {t.note || (t.type === 'income' ? 'Dépôt' : 'Sans note')}
+                                            <h4 className="font-ancient font-black text-white group-hover:text-amber-500 transition-colors uppercase tracking-widest">
+                                                {t.type === 'income' ? (t.note || 'REVENU IMPÉRIAL') : (t.categories?.name || 'LOGISTIQUE')}
+                                            </h4>
+                                            <p className="text-[10px] font-mono text-slate-500 uppercase mt-1">
+                                                {new Date(t.timestamp).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
                                             </p>
                                         </div>
                                         <div className="text-right">
-                                            <span className={`block text-lg font-mono font-bold tracking-tight ${t.type === 'income' ? 'text-emerald-400' : 'text-rose-400'
-                                                }`}>
+                                            <div className={`text-xl font-mono font-black ${t.type === 'income' ? 'text-emerald-400' : 'text-slate-200'}`}>
                                                 {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
-                                            </span>
-                                            <span className="text-[10px] text-slate-600 uppercase font-bold">
-                                                {new Date(t.timestamp).toLocaleDateString()}
-                                            </span>
+                                            </div>
+                                            {t.type === 'expense' && <div className="text-[9px] text-slate-600 font-bold uppercase mt-1">Sortie de trésorerie</div>}
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Actions masquées (Overlay) */}
-                            <div className="absolute inset-0 bg-slate-900/90 flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px]">
-                                <button
-                                    onClick={() => handleAnalyze(t)}
-                                    className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 text-amber-500 border border-amber-500/50 rounded-lg hover:bg-amber-500 hover:text-slate-900 font-bold transition-all transform hover:scale-105"
-                                >
-                                    <Sparkles size={16} /> Oracle
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(t)}
-                                    className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/50 rounded-lg hover:bg-rose-500 hover:text-white font-bold transition-all transform hover:scale-105"
-                                >
-                                    <Trash2 size={16} /> Supprimer
-                                </button>
+                            {/* Hover Actions */}
+                            <div className="absolute -right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 flex flex-col gap-2 transition-all group-hover:translate-x-full pr-4">
+                                <button onClick={() => handleAnalyze(t)} className="p-3 bg-amber-500 text-slate-950 rounded-xl shadow-lg border border-amber-400 hover:scale-110 active:scale-95 transition-all"><Sparkles size={16} /></button>
+                                <button onClick={() => { }} className="p-3 bg-slate-900 text-rose-500 rounded-xl shadow-lg border border-rose-500/20 hover:scale-110 active:scale-95 transition-all"><Trash2 size={16} /></button>
                             </div>
                         </motion.div>
                     ))}
                 </AnimatePresence>
-
-                {filteredTransactions.length === 0 && !loading && (
-                    <div className="text-center py-12 text-slate-500">
-                        <Filter className="mx-auto mb-2 opacity-50" size={32} />
-                        <p>Aucune transaction trouvée.</p>
-                    </div>
-                )}
             </div>
 
-            {/* Modal d'Ajout */}
+            {/* Modal de Conquête (Add Transaction) */}
             <AnimatePresence>
                 {isAddModalOpen && (
-                    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/60 backdrop-blur-sm p-0 md:p-4">
-                        <motion.div
-                            initial={{ y: "100%" }}
-                            animate={{ y: 0 }}
-                            exit={{ y: "100%" }}
-                            className="bg-slate-900 w-full md:max-w-md rounded-t-2xl md:rounded-2xl border border-slate-800 shadow-2xl overflow-hidden"
-                        >
-                            <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
-                                <h2 className="text-lg font-bold">Nouvelle Opération</h2>
-                                <button onClick={() => setIsAddModalOpen(false)}><X className="text-slate-400 hover:text-white" /></button>
-                            </div>
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-xl">
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="card-warrior w-full max-w-xl p-8 bg-slate-900 border-amber-500/20 relative">
+                            <button onClick={() => setIsAddModalOpen(false)} className="absolute top-6 right-6 text-slate-500 hover:text-white"><X size={24} /></button>
 
-                            <form onSubmit={handleCreateTransaction} className="p-4 space-y-4">
-                                {/* Type Toggle */}
-                                <div className="grid grid-cols-3 gap-2 bg-slate-800 p-1 rounded-xl">
-                                    <button
-                                        type="button"
-                                        onClick={() => setTransactionType('expense')}
-                                        className={`py-2 rounded-lg text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 ${transactionType === 'expense'
-                                            ? 'bg-rose-500 text-white shadow-lg'
-                                            : 'text-slate-400 hover:text-white'
-                                            }`}
-                                    >
-                                        <TrendingDown size={14} /> Dépense
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setTransactionType('income')}
-                                        className={`py-2 rounded-lg text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 ${transactionType === 'income'
-                                            ? 'bg-emerald-500 text-white shadow-lg'
-                                            : 'text-slate-400 hover:text-white'
-                                            }`}
-                                    >
-                                        <TrendingUp size={14} /> Revenu
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setTransactionType('goal')}
-                                        className={`py-2 rounded-lg text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 ${transactionType === 'goal'
-                                            ? 'bg-blue-500 text-white shadow-lg'
-                                            : 'text-slate-400 hover:text-white'
-                                            }`}
-                                    >
-                                        <Target size={14} /> Objectif
-                                    </button>
+                            <h2 className="heading-gold text-2xl mb-8">NOUVELLE CONQUÊTE</h2>
+
+                            <form onSubmit={handleCreateTransaction} className="space-y-8">
+                                <div>
+                                    <label className="text-[10px] font-ancient font-black text-slate-500 uppercase tracking-widest mb-3 block">Volume du Trésor</label>
+                                    <div className="relative">
+                                        <input
+                                            type="number" value={amount} onChange={e => setAmount(e.target.value)}
+                                            className="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl px-6 py-6 text-4xl font-mono text-white focus:border-amber-500 transition-all placeholder-slate-800"
+                                            placeholder="0" autoFocus required
+                                        />
+                                        <div className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-500 font-ancient font-bold">FCFA</div>
+                                    </div>
                                 </div>
 
-                                <div>
-                                    <label className="text-xs text-slate-400 uppercase font-bold ml-1">Montant</label>
-                                    <div className="relative mt-1">
-                                        <input
-                                            type="number"
-                                            value={amount}
-                                            onChange={(e) => setAmount(e.target.value)}
-                                            className="w-full bg-slate-800 border-2 border-slate-700 rounded-xl px-4 py-3 text-2xl font-mono focus:border-amber-500 focus:outline-none transition-colors"
-                                            placeholder="0"
-                                            autoFocus
-                                            required
-                                        />
-                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">FCFA</span>
-                                    </div>
+                                <div className="grid grid-cols-3 gap-4">
+                                    {['expense', 'income', 'goal'].map(type => (
+                                        <button
+                                            key={type} type="button" onClick={() => setTransactionType(type)}
+                                            className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${transactionType === type ? 'border-amber-500 bg-amber-500/10 text-white' : 'border-slate-800 bg-slate-950 text-slate-600'}`}
+                                        >
+                                            {type === 'expense' ? <TrendingDown /> : type === 'income' ? <TrendingUp /> : <Target />}
+                                            <span className="text-[9px] font-ancient font-bold uppercase tracking-widest">{type === 'expense' ? 'Coût' : type === 'income' ? 'Gain' : 'Cible'}</span>
+                                        </button>
+                                    ))}
                                 </div>
 
                                 {transactionType === 'expense' && (
                                     <div>
-                                        <label className="text-xs text-slate-400 uppercase font-bold ml-1">Catégorie</label>
-                                        <div className="grid grid-cols-4 gap-2 mt-1 max-h-40 overflow-y-auto custom-scrollbar p-1">
+                                        <label className="text-[10px] font-ancient font-black text-slate-500 uppercase tracking-widest mb-3 block">Secteur de dépense</label>
+                                        <div className="grid grid-cols-5 gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
                                             {categories.map(cat => (
-                                                <button
-                                                    key={cat.id}
-                                                    type="button"
-                                                    onClick={() => setCategoryId(cat.id)}
-                                                    className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-1 border-2 transition-all ${categoryId === cat.id
-                                                        ? 'border-amber-500 bg-amber-500/10 text-white'
-                                                        : 'border-slate-700 bg-slate-800 text-slate-400 hover:border-slate-600'
-                                                        }`}
-                                                >
+                                                <button key={cat.id} type="button" onClick={() => setCategoryId(cat.id)} className={`flex flex-col items-center p-2 rounded-xl border-2 transition-all ${categoryId === cat.id ? 'border-rose-500 bg-rose-500/10' : 'border-slate-800'}`}>
                                                     <span className="text-xl">{cat.icon}</span>
-                                                    <span className="text-[9px] truncate w-full text-center px-1 leading-none">{cat.name}</span>
+                                                    <span className="text-[8px] font-bold uppercase mt-1 text-slate-500">{cat.name}</span>
                                                 </button>
                                             ))}
-                                            <button
-                                                type="button"
-                                                className="aspect-square rounded-xl border-2 border-dashed border-slate-700 bg-slate-800/50 flex items-center justify-center text-slate-500 hover:text-white hover:border-slate-500 transition-colors"
-                                            >
-                                                <Plus size={20} />
-                                            </button>
                                         </div>
                                     </div>
                                 )}
 
-                                {transactionType === 'goal' && (
-                                    <div>
-                                        <label className="text-xs text-slate-400 uppercase font-bold ml-1">Sélectionner l'Objectif</label>
-                                        <div className="space-y-2 mt-1 max-h-40 overflow-y-auto custom-scrollbar">
-                                            {goals.length > 0 ? goals.map(g => (
-                                                <button
-                                                    key={g.id}
-                                                    type="button"
-                                                    onClick={() => setGoalId(g.id)}
-                                                    className={`w-full p-3 rounded-xl border-2 flex items-center gap-3 transition-all ${goalId === g.id
-                                                        ? 'border-blue-500 bg-blue-500/10'
-                                                        : 'border-slate-700 bg-slate-800 hover:border-slate-600'
-                                                        }`}
-                                                >
-                                                    <span className="text-2xl">{g.icon}</span>
-                                                    <div className="text-left">
-                                                        <div className="font-bold text-sm text-white">{g.title}</div>
-                                                        <div className="text-xs text-slate-400">Reste: {formatCurrency(g.target_amount - g.current_amount)}</div>
-                                                    </div>
-                                                </button>
-                                            )) : (
-                                                <div className="text-center p-4 text-slate-500 text-sm border border-dashed border-slate-700 rounded-xl">
-                                                    Aucun objectif actif.
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {transactionType !== 'goal' && (
-                                    <div>
-                                        <label className="text-xs text-slate-400 uppercase font-bold ml-1">Note (Optionnel)</label>
-                                        <input
-                                            type="text"
-                                            value={note}
-                                            onChange={e => setNote(e.target.value)}
-                                            className="w-full bg-slate-800 border-slate-700 rounded-xl px-4 py-3 mt-1 focus:border-amber-500 focus:outline-none transition-colors"
-                                            placeholder="..."
-                                        />
-                                    </div>
-                                )}
-
-                                <button
-                                    type="submit"
-                                    className={`btn w-full py-4 text-lg font-bold shadow-xl mt-4 ${transactionType === 'income'
-                                        ? 'bg-emerald-500 hover:bg-emerald-400 shadow-emerald-500/20'
-                                        : transactionType === 'goal'
-                                            ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-500/20'
-                                            : 'bg-rose-500 hover:bg-rose-400 shadow-rose-500/20'
-                                        }`}
-                                >
-                                    Valider
-                                </button>
-                            </form>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-
-            {/* MODALE DE SUPPRESSION COMPACTE */}
-            <AnimatePresence>
-                {isDeleteModalOpen && (
-                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-slate-900 border border-rose-500/30 rounded-xl w-full max-w-[320px] shadow-2xl relative overflow-hidden"
-                        >
-                            <div className="p-6 text-center">
-                                <motion.div
-                                    animate={{ rotate: [0, -10, 10, 0] }}
-                                    className="w-12 h-12 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-3 text-rose-500 border border-rose-500/20"
-                                >
-                                    <Trash2 size={24} />
-                                </motion.div>
-
-                                <h3 className="text-lg font-bold text-white mb-1">
-                                    Supprimer ?
-                                </h3>
-                                <p className="text-sm text-slate-400 mb-5">
-                                    Cette action est irréversible.
-                                </p>
-
-                                <div className="grid grid-cols-2 gap-3">
-                                    <button
-                                        onClick={() => setIsDeleteModalOpen(false)}
-                                        className="btn bg-slate-800 hover:bg-slate-700 text-xs text-white border border-slate-700 py-2.5 rounded-lg"
-                                    >
-                                        Annuler
-                                    </button>
-                                    <button
-                                        onClick={confirmDelete}
-                                        className="btn bg-rose-600 hover:bg-rose-500 text-xs text-white font-bold py-2.5 rounded-lg shadow-lg shadow-rose-900/40"
-                                    >
-                                        Confirmer
-                                    </button>
+                                <div>
+                                    <label className="text-[10px] font-ancient font-black text-slate-500 uppercase tracking-widest mb-3 block">Observation tactique</label>
+                                    <input type="text" value={note} onChange={e => setNote(e.target.value)} className="w-full bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-4 text-white font-ancient text-sm" placeholder="NOTE DE CAMPAGNE..." />
                                 </div>
-                            </div>
+
+                                <button type="submit" className="btn-empire-primary w-full py-5 text-lg">SCELLER LA CONQUÊTE</button>
+                            </form>
                         </motion.div>
                     </div>
                 )}
@@ -491,4 +302,3 @@ const TransactionsPage = () => {
 };
 
 export default TransactionsPage;
-
