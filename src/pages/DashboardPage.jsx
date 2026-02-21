@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Wallet, TrendingUp, TrendingDown, Target,
     Zap, Calendar, ArrowRight, Shield, Bot, ScrollText, Flame, Crown, Gem, Sword,
-    AlertCircle, Search, Trophy, Map
+    AlertCircle, Search, Trophy, Map, BookOpen, Lock, CheckCircle2, Brain
 } from 'lucide-react';
 import { useAuthStore } from '../store';
 import { getTotalBalance, getTotalAvailableBalance, getSavingsBalance } from '../services/balanceService';
@@ -14,6 +14,7 @@ import { getProactiveWisdom, detectFinancialLeaks } from '../services/aiService'
 import { getDebts } from '../services/debtService';
 import { getActiveMissions } from '../services/missionService';
 import { Link } from 'react-router-dom';
+import { useCurrency } from '../hooks/useCurrency';
 
 // Composants de Guerre
 import WarRoomChart from '../components/WarRoomChart';
@@ -34,6 +35,7 @@ const DashboardPage = () => {
     const [decreeBatch, setDecreeBatch] = useState([]);
     const [currentDecreeIndex, setCurrentDecreeIndex] = useState(0);
     const [currentLawIndex, setCurrentLawIndex] = useState(0);
+    const { formatCurrency } = useCurrency();
 
     // Nouveaux Modules
     const [missions, setMissions] = useState([]);
@@ -95,7 +97,6 @@ const DashboardPage = () => {
         finally { setIsAnalyzingLeaks(false); }
     };
 
-    const formatCurrency = (amount) => Math.round(amount).toLocaleString('fr-FR');
     const rank = gamification ? getCurrentRank(gamification.xp) : { name: 'Recrue', icon: '🎖️' };
 
     if (loading) return (
@@ -113,38 +114,103 @@ const DashboardPage = () => {
 
             {/* --- TOP BANNER: RANK & WEALTH --- */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="card-warrior p-6 bg-slate-950/60 flex items-center gap-6">
+                <div className="card-warrior p-6 flex items-center gap-6">
                     <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-700 flex items-center justify-center text-4xl shadow-2xl border border-amber-300/30">
                         {rank.icon}
                     </div>
                     <div>
                         <div className="text-[10px] font-black text-amber-500 uppercase tracking-[0.3em] font-ancient">Monarque Impérial</div>
-                        <h2 className="text-3xl font-black text-white font-ancient tracking-tight uppercase">{user.user_metadata?.username || 'Guerrier'}</h2>
+                        <h2 className="text-3xl font-black text-[var(--text-main)] font-ancient tracking-tight uppercase">{user.user_metadata?.username || 'Guerrier'}</h2>
                         <div className="rank-badge mt-2">{rank.name}</div>
                     </div>
                 </div>
 
-                <div className="lg:col-span-2 card-warrior p-6 bg-gradient-to-r from-slate-900 to-slate-950 flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className="lg:col-span-2 card-warrior p-6 flex flex-col md:flex-row justify-between items-center gap-6">
                     <div>
                         <div className="text-[10px] font-black text-amber-500 uppercase tracking-[0.3em] font-ancient flex items-center gap-2">
                             <Gem size={14} /> Trésorerie de l'Empire
                         </div>
                         <div className="flex items-baseline gap-2 mt-1">
                             <span className="heading-gold text-5xl">{formatCurrency(finances.total)}</span>
-                            <span className="text-amber-500 font-ancient font-bold text-sm">FCFA</span>
                         </div>
                     </div>
                     <div className="flex gap-4">
+                        <Link to="/allocation" className="btn-empire text-xs flex items-center gap-2">
+                            <Flame size={14} /> RAPPORT DE BUTIN
+                        </Link>
                         <Link to="/transactions" className="btn-empire-primary px-6 text-xs">NOUVELLE CONQUÊTE</Link>
                     </div>
                 </div>
             </div>
 
+            {/* --- MOTIVATIONAL ORACLE & LAWS (NEW POSITION AT TOP) --- */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-3 card-warrior p-8 bg-amber-500/5 relative overflow-hidden border-amber-500/20 shadow-[0_0_50px_-12px_rgba(245,158,11,0.1)]">
+                    <div className="absolute top-0 right-0 p-8 opacity-5">
+                        <ScrollText size={120} className="text-amber-500 rotate-12" />
+                    </div>
+
+                    <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
+                        <div className="flex-shrink-0 w-24 h-24 rounded-full border-4 border-amber-500/20 flex items-center justify-center shadow-lg bg-amber-500/5 animate-pulse">
+                            <Bot size={40} className="text-amber-500" />
+                        </div>
+
+                        <div className="flex-grow space-y-4">
+                            <div className="flex items-center gap-3">
+                                <span className="text-[10px] font-black text-amber-500 uppercase tracking-[0.4em] font-ancient">Directives de l'Oracle</span>
+                                <div className="h-px flex-grow bg-gradient-to-r from-amber-500/30 to-transparent"></div>
+                            </div>
+
+                            <AnimatePresence mode="wait">
+                                {decreeBatch.length > 0 ? (
+                                    <motion.div
+                                        key={`decree-${currentDecreeIndex}`}
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        className="space-y-2"
+                                    >
+                                        <p className="text-xl lg:text-3xl font-ancient font-black text-[var(--text-main)] italic leading-tight">
+                                            "{decreeBatch[currentDecreeIndex]}"
+                                        </p>
+                                        <div className="flex items-center gap-2 text-amber-500/60 font-ancient text-[10px] uppercase tracking-widest">
+                                            <Zap size={12} /> Décret Stratégique Actif
+                                        </div>
+                                    </motion.div>
+                                ) : (
+                                    <motion.div
+                                        key={`law-${currentLawIndex}`}
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        className="space-y-2"
+                                    >
+                                        <p className="text-xl lg:text-3xl font-ancient font-black text-[var(--text-main)] italic leading-tight">
+                                            "{RICHE_LAWS[currentLawIndex].text}"
+                                        </p>
+                                        <div className="flex items-center gap-2 text-amber-500/60 font-ancient text-[10px] uppercase tracking-widest">
+                                            <ScrollText size={12} /> Loi de {RICHE_LAWS[currentLawIndex].ref}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
+                        <div className="flex-shrink-0">
+                            <Link to="/ai-advisor" className="btn-empire px-8 py-4 text-xs font-black tracking-[0.2em]">CONSULTER L'ORACLE</Link>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* --- STRATÈGE COMMAND CENTER --- */}
+            <StrategeCommandCenter />
+
             {/* --- MODULE 1: THE WAR ROOM (Graphique) --- */}
             <div className="space-y-4">
                 <div className="flex items-center gap-3">
                     <Map size={24} className="text-amber-500" />
-                    <h3 className="text-xl font-ancient font-black text-white tracking-[0.2em] uppercase">La War Room</h3>
+                    <h3 className="text-xl font-ancient font-black text-[var(--text-main)] tracking-[0.2em] uppercase">La War Room</h3>
                 </div>
                 <div className="card-warrior p-8 h-[400px]">
                     <WarRoomChart dataPoints={historicalData} />
@@ -154,9 +220,9 @@ const DashboardPage = () => {
             {/* --- MODULE 2 & 3: LEAKS & MISSIONS --- */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Détecteur de Fuites */}
-                <div className="card-warrior p-8 bg-rose-950/5 border-rose-500/20">
+                <div className="card-warrior p-8 bg-rose-500/5 border-rose-500/20">
                     <div className="flex justify-between items-center mb-6">
-                        <h3 className="font-ancient font-black text-white tracking-widest flex items-center gap-2">
+                        <h3 className="font-ancient font-black text-[var(--text-main)] tracking-widest flex items-center gap-2">
                             <Search size={18} className="text-rose-500" /> DÉTECTEUR DE FUITES
                         </h3>
                         <button
@@ -214,55 +280,34 @@ const DashboardPage = () => {
                 <ConquestSimulator initialBalance={finances.total} />
             </div>
 
-            {/* --- MODULE 5: LAWS & JOURNAL --- */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* --- MODULE 5: JOURNAL --- */}
+            <div className="grid grid-cols-1 gap-8">
                 {/* Journal des Conquêtes */}
-                <div className="lg:col-span-2 card-warrior p-8">
+                <div className="card-warrior p-8">
                     <h3 className="text-lg font-ancient font-black text-white mb-8 tracking-widest uppercase flex items-center gap-3">
                         <Sword size={20} className="text-slate-500" /> Journal des Conquêtes
                     </h3>
-                    <div className="space-y-3">
-                        {finances.recentTransactions.slice(0, 5).map((t, idx) => (
-                            <div key={idx} className="flex justify-between items-center p-4 rounded-xl bg-white/5 border border-white/5 hover:border-amber-500/20 transition-all">
+                    <div className="space-y-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {finances.recentTransactions.slice(0, 6).map((t, idx) => (
+                            <div key={idx} className="flex justify-between items-center p-5 rounded-2xl bg-slate-900/50 border border-white/5 hover:border-amber-500/20 transition-all">
                                 <div className="flex items-center gap-4">
-                                    <div className={`p-2 rounded-lg ${t.type === 'income' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                                        <Wallet size={16} />
+                                    <div className={`p-3 rounded-xl ${t.type === 'income' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                                        <Wallet size={18} />
                                     </div>
                                     <div>
                                         <div className="text-xs font-bold text-white uppercase font-ancient">{t.categories?.name || (t.type === 'income' ? 'REVENU' : 'DÉPENSE')}</div>
-                                        <div className="text-[10px] text-slate-500 font-mono">{new Date(t.timestamp).toLocaleDateString()}</div>
+                                        <div className="text-[10px] text-slate-500 font-mono italic">{new Date(t.timestamp).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</div>
                                     </div>
                                 </div>
-                                <span className={`font-mono font-black ${t.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                <span className={`font-mono font-black text-lg ${t.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}`}>
                                     {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                                 </span>
                             </div>
                         ))}
-                        {finances.recentTransactions.length === 0 && (
-                            <p className="text-center py-8 text-slate-600 font-ancient text-xs">Aucune conquête récente inscrite dans les registres.</p>
-                        )}
                     </div>
-                </div>
-
-                {/* Les Lois Sacrées */}
-                <div className="card-warrior p-8 bg-amber-500/5 relative overflow-hidden flex flex-col justify-between border-amber-500/20">
-                    <div>
-                        <h3 className="font-ancient font-black text-white tracking-widest mb-4 uppercase flex items-center gap-2">
-                            <ScrollText size={18} className="text-amber-500" /> Les Lois Sacrées
-                        </h3>
-                        <AnimatePresence mode="wait">
-                            <motion.div
-                                key={currentLawIndex}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                className="italic font-ancient text-amber-200/80 leading-relaxed text-sm p-4 bg-amber-500/5 rounded-xl border border-amber-500/10"
-                            >
-                                "{RICHE_LAWS[currentLawIndex].text}"
-                            </motion.div>
-                        </AnimatePresence>
-                    </div>
-                    <Link to="/ai-advisor" className="btn-empire-primary w-full mt-6 text-center text-[10px] py-4">CONSULTER L'ORACLE</Link>
+                    {finances.recentTransactions.length === 0 && (
+                        <p className="text-center py-12 text-slate-700 font-ancient text-xs italic">Les registres des conquêtes sont vierges pour le moment.</p>
+                    )}
                 </div>
             </div>
         </div>
@@ -270,3 +315,163 @@ const DashboardPage = () => {
 };
 
 export default DashboardPage;
+
+// ============================================================
+// STRATÈGE COMMAND CENTER — Widget autonome
+// ============================================================
+const DAILY_CHECKS = [
+    { id: 'no_impulse', icon: '🛡️', text: 'Zéro dépense impulsive aujourd\'hui' },
+    { id: 'log_all', icon: '📝', text: 'J\'ai loggé toutes mes transactions' },
+    { id: 'asset_mode', icon: '🔒', text: 'Mon prochain gain va en actif, pas en confort' },
+    { id: 'growth_act', icon: '📈', text: 'J\'ai fait 1 action pour mon business aujourd\'hui' },
+];
+
+const FUND_DEFS = [
+    { key: 'security', label: 'Sécurité', icon: '🔒', color: 'blue', targetKey: 'target' },
+    { key: 'business', label: 'Business', icon: '📈', color: 'amber', targetKey: 'target' },
+    { key: 'equipment', label: 'Équipement', icon: '🔧', color: 'orange', targetKey: 'target' },
+];
+
+const COLOR_FUND = {
+    blue: { bar: 'bg-blue-500', text: 'text-blue-400', border: 'border-blue-500/20', bg: 'bg-blue-500/10' },
+    amber: { bar: 'bg-amber-500', text: 'text-amber-400', border: 'border-amber-500/20', bg: 'bg-amber-500/10' },
+    orange: { bar: 'bg-orange-500', text: 'text-orange-400', border: 'border-orange-500/20', bg: 'bg-orange-500/10' },
+};
+
+const todayKey = () => new Date().toISOString().slice(0, 10);
+const fmtK = n => {
+    const v = Math.round(n || 0);
+    return v >= 1000 ? (v / 1000).toFixed(0) + 'k' : String(v);
+};
+
+function StrategeCommandCenter() {
+    const { formatCurrency } = useCurrency();
+    const storageKey = `dash_strat_${todayKey()}`;
+    const [checks, setChecks] = useState(() => {
+        try { return JSON.parse(localStorage.getItem(storageKey)) || []; }
+        catch { return []; }
+    });
+    const [funds, setFunds] = useState(() => {
+        try {
+            return JSON.parse(localStorage.getItem('strat_funds')) || {
+                security: { current: 0, target: 300000 },
+                business: { current: 0, target: 500000 },
+                equipment: { current: 0, target: 200000 },
+            };
+        } catch { return { security: { current: 0, target: 300000 }, business: { current: 0, target: 500000 }, equipment: { current: 0, target: 200000 } }; }
+    });
+
+    const toggle = (id) => {
+        const next = checks.includes(id) ? checks.filter(c => c !== id) : [...checks, id];
+        setChecks(next);
+        localStorage.setItem(storageKey, JSON.stringify(next));
+    };
+
+    const score = checks.length;
+    const scoreColor = score === 4 ? 'text-emerald-400' : score >= 2 ? 'text-amber-400' : 'text-slate-600';
+    const scoreLabel = score === 4 ? 'Discipline parfaite ⚔️' : score >= 2 ? `${score}/4 — Continue` : score > 0 ? `${score}/4 — Mobilise-toi` : 'Non démarré';
+
+    return (
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+            className="space-y-4">
+
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <Sword size={22} className="text-rose-400" />
+                    <h3 className="text-xl font-ancient font-black text-white tracking-[0.2em] uppercase">Stratège Command Center</h3>
+                </div>
+                <div className={`text-[9px] font-black uppercase tracking-widest ${scoreColor}`}>{scoreLabel}</div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+                {/* ── Checklist discipline du jour ── */}
+                <div className="card-warrior p-6 bg-slate-900/60">
+                    <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <Brain size={12} className="text-purple-400" /> Discipline — {todayKey()}
+                    </div>
+                    <div className="space-y-2">
+                        {DAILY_CHECKS.map((item) => {
+                            const done = checks.includes(item.id);
+                            return (
+                                <button key={item.id} onClick={() => toggle(item.id)}
+                                    className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${done ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-slate-950/40 border-slate-800 hover:border-slate-600'
+                                        }`}>
+                                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${done ? 'bg-emerald-500 border-emerald-500' : 'border-slate-700'
+                                        }`}>
+                                        {done && <CheckCircle2 size={14} className="text-slate-950" />}
+                                    </div>
+                                    <span className="mr-1">{item.icon}</span>
+                                    <span className={`text-[10px] font-bold ${done ? 'text-white line-through opacity-70' : 'text-slate-500'}`}>{item.text}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                    {score === 4 && (
+                        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                            className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-center">
+                            <div className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">
+                                ✓ Journée d'opérateur validée — Fonds autorisés à croître
+                            </div>
+                        </motion.div>
+                    )}
+                </div>
+
+                {/* ── 3 Fonds Inviolables ── */}
+                <div className="card-warrior p-6 bg-slate-900/60">
+                    <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <Lock size={12} className="text-blue-400" /> Fonds Inviolables
+                    </div>
+                    <div className="space-y-3">
+                        {FUND_DEFS.map(f => {
+                            const fd = funds[f.key] || {};
+                            const cur = fd.current || 0;
+                            const tgt = fd.target || 1;
+                            const pct = Math.min(100, Math.round((cur / tgt) * 100));
+                            const c = COLOR_FUND[f.color];
+                            return (
+                                <div key={f.key} className={`p-3 rounded-xl border ${c.border} ${c.bg}`}>
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-base">{f.icon}</span>
+                                            <span className={`font-ancient font-black text-[9px] uppercase tracking-wider ${c.text}`}>{f.label}</span>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className={`font-mono font-black text-[10px] ${c.text}`}>{formatCurrency(cur)}</span>
+                                            <span className="text-[8px] text-slate-700"> / {formatCurrency(tgt)}</span>
+                                        </div>
+                                    </div>
+                                    <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                        <motion.div className={`h-full ${c.bar} rounded-full`}
+                                            initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8, ease: 'easeOut' }} />
+                                    </div>
+                                    <div className="text-right text-[7px] text-slate-700 font-black mt-0.5">{pct}%</div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
+
+            {/* ── CTAs rapides ── */}
+            <div className="grid grid-cols-3 gap-3">
+                <Link to="/allocation?tab=distribute"
+                    className="card-warrior p-4 flex flex-col items-center gap-2 border-amber-500/20 hover:bg-amber-500/10 hover:border-amber-500/40 transition-all group">
+                    <Flame size={20} className="text-amber-500" />
+                    <div className="text-[8px] font-black text-slate-500 group-hover:text-amber-400 uppercase tracking-widest text-center transition-colors">Distribuer<br />un revenu</div>
+                </Link>
+                <Link to="/allocation"
+                    className="card-warrior p-4 flex flex-col items-center gap-2 border-blue-500/20 hover:bg-blue-500/10 hover:border-blue-500/40 transition-all group">
+                    <Shield size={20} className="text-blue-400" />
+                    <div className="text-[8px] font-black text-slate-500 group-hover:text-blue-400 uppercase tracking-widest text-center transition-colors">Blueprint<br />des Blocs</div>
+                </Link>
+                <Link to="/academie?tab=stratege"
+                    className="card-warrior p-4 flex flex-col items-center gap-2 border-rose-500/20 hover:bg-rose-500/10 hover:border-rose-500/40 transition-all group">
+                    <BookOpen size={20} className="text-rose-400" />
+                    <div className="text-[8px] font-black text-slate-500 group-hover:text-rose-400 uppercase tracking-widest text-center transition-colors">Académie<br />Stratège</div>
+                </Link>
+            </div>
+        </motion.div>
+    );
+}

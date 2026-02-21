@@ -9,6 +9,7 @@ import { getGoals, createGoal, deleteGoal, contributeToGoal } from '../services/
 import { suggestGoals } from '../services/aiService';
 import { getBalances } from '../services/balanceService';
 import toast from 'react-hot-toast';
+import { useCurrency } from '../hooks/useCurrency';
 
 const GoalsPage = () => {
     const { user } = useAuthStore();
@@ -112,7 +113,7 @@ const GoalsPage = () => {
         }
     };
 
-    const formatCurrency = (amount) => Math.round(amount).toLocaleString('fr-FR') + ' FCFA';
+    const { formatCurrency } = useCurrency();
 
     if (loading) return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">

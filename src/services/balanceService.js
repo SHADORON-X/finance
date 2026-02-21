@@ -115,10 +115,10 @@ export const getCategoryBalance = async (userId, categoryId) => {
         .select('amount')
         .eq('user_id', userId)
         .eq('category_id', categoryId)
-        .single();
+        .maybeSingle();
 
     if (error) throw error;
-    return data.amount;
+    return data?.amount || 0;
 };
 
 /**
@@ -184,7 +184,7 @@ export const getSavingsBalance = async (userId) => {
         .select('id')
         .eq('user_id', userId)
         .eq('is_locked', true)
-        .single();
+        .maybeSingle();
 
     if (!category) return 0;
 
@@ -193,7 +193,7 @@ export const getSavingsBalance = async (userId) => {
         .select('amount')
         .eq('user_id', userId)
         .eq('category_id', category.id)
-        .single();
+        .maybeSingle();
 
     return balance?.amount || 0;
 };

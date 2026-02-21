@@ -3,15 +3,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     User, Moon, Sun, Monitor, Cpu, Key,
     Download, Trash2, LogOut, ChevronRight,
-    Shield, Sparkles, Palette, CheckCircle2, AlertTriangle
+    Shield, Sparkles, Palette, CheckCircle2, AlertTriangle, Coins
 } from 'lucide-react';
 import { useAuthStore, useUIStore } from '../store';
 import { supabase } from '../lib/supabase';
+import { setUserCurrency } from '../services/currencyService';
 import toast from 'react-hot-toast';
 
 const SETTINGS_SECTIONS = [
     { id: 'profile', label: 'Profil', icon: User },
     { id: 'appearance', label: 'Apparence', icon: Palette },
+    { id: 'currency', label: 'Devise', icon: Coins },
     { id: 'ai', label: 'Intelligence Artificielle', icon: Cpu },
     { id: 'data', label: 'Données & Sécurité', icon: Shield },
 ];
@@ -26,7 +28,7 @@ const THEMES = [
 
 const SettingsPage = () => {
     const { user, logout } = useAuthStore();
-    const { theme, setTheme } = useUIStore(); // Supposé exister dans le store
+    const { theme, setTheme, currency, setCurrency } = useUIStore();
     const [activeSection, setActiveSection] = useState('profile');
     const [apiKey, setApiKey] = useState('');
     const [isEditingKey, setIsEditingKey] = useState(false);
@@ -104,8 +106,8 @@ const SettingsPage = () => {
                                 key={section.id}
                                 onClick={() => setActiveSection(section.id)}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive
-                                        ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20 shadow-sm'
-                                        : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                                    ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20 shadow-sm'
+                                    : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
                                     }`}
                             >
                                 <Icon size={18} />
@@ -210,6 +212,66 @@ const SettingsPage = () => {
                                         <span className="text-sm font-medium">Mode Système</span>
                                     </div>
                                     <div className="text-xs text-slate-500">Bientôt</div>
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {activeSection === 'currency' && (
+                            <motion.div
+                                key="currency"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                className="space-y-6"
+                            >
+                                <h2 className="text-xl font-bold border-b border-slate-800 pb-4 flex items-center gap-2">
+                                    <Coins className="text-amber-500" size={20} />
+                                    Devise d'Affichage
+                                </h2>
+                                <p className="text-sm text-slate-400">
+                                    Choisissez la devise dans laquelle vos finances seront converties et affichées.
+                                    <br />
+                                    <span className="text-[10px] text-slate-500 uppercase font-black">Note : Les calculs de base restent en GNF.</span>
+                                </p>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {[
+                                        { id: 'GNF', name: 'Franc Guinéen', icon: '🇬🇳', symbol: 'FG' },
+                                        { id: 'USD', name: 'Dollar US', icon: '🇺🇸', symbol: '$' },
+                                        { id: 'EUR', name: 'Euro', icon: '🇪🇺', symbol: '€' },
+                                        { id: 'BTC', name: 'Bitcoin', icon: '₿', symbol: '₿' },
+                                    ].map((c) => (
+                                        <button
+                                            key={c.id}
+                                            onClick={() => {
+                                                setCurrency(c.id);
+                                                setUserCurrency(c.id);
+                                                toast.success(`Devise changée en ${c.name}`);
+                                            }}
+                                            className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all group ${currency === c.id
+                                                ? 'bg-amber-500/10 border-amber-500 shadow-lg shadow-amber-500/10'
+                                                : 'bg-slate-800/40 border-slate-800 hover:border-slate-700'
+                                                }`}
+                                        >
+                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-inner ${currency === c.id ? 'bg-amber-500 text-slate-950' : 'bg-slate-900 text-slate-400'
+                                                }`}>
+                                                {c.icon}
+                                            </div>
+                                            <div className="text-left">
+                                                <div className={`font-bold ${currency === c.id ? 'text-white' : 'text-slate-300'}`}>
+                                                    {c.name}
+                                                </div>
+                                                <div className="text-xs text-slate-500 font-mono">
+                                                    Code: {c.id} ({c.symbol})
+                                                </div>
+                                            </div>
+                                            {currency === c.id && (
+                                                <div className="ml-auto">
+                                                    <CheckCircle2 size={18} className="text-amber-500" />
+                                                </div>
+                                            )}
+                                        </button>
+                                    ))}
                                 </div>
                             </motion.div>
                         )}

@@ -10,28 +10,18 @@ export default defineConfig({
             registerType: 'autoUpdate',
             includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
             manifest: {
-                name: 'SHADORON - Budget Discipline',
+                name: 'SHADORON Finance',
                 short_name: 'SHADORON',
-                description: 'Application de gestion financière avec discipline',
-                theme_color: '#1a1a2e',
-                background_color: '#0d0d14',
+                description: 'Gérez votre trésorerie avec la discipline d\'un empereur.',
+                theme_color: '#020617',
+                background_color: '#020617',
                 display: 'standalone',
                 orientation: 'portrait',
                 icons: [
                     {
-                        src: '/icon-192.png',
-                        sizes: '192x192',
-                        type: 'image/png'
-                    },
-                    {
-                        src: '/icon-512.png',
-                        sizes: '512x512',
-                        type: 'image/png'
-                    },
-                    {
-                        src: '/icon-512.png',
-                        sizes: '512x512',
-                        type: 'image/png',
+                        src: '/icon.svg',
+                        sizes: 'any',
+                        type: 'image/svg+xml',
                         purpose: 'any maskable'
                     }
                 ]

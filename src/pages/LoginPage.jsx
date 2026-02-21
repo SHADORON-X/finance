@@ -159,7 +159,7 @@ const LoginPage = () => {
                 >
                     <div className="relative">
                         {/* Glow Effect */}
-                        <div className="absolute -inset-1 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-3xl blur-2xl opacity-20" />
+                        <div className="absolute -inset-1 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-3xl blur-2xl opacity-20 pointer-events-none" />
 
                         {/* Card */}
                         <div className="relative backdrop-blur-2xl bg-white/[0.05] border border-white/10 rounded-3xl p-8 shadow-2xl">

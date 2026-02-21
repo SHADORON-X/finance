@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
     TrendingUp, Target, Trophy, Settings, Bot,
     Coins, ShieldAlert, LayoutDashboard, Wallet,
-    Gem, Sword, Map, Zap, ScrollText, Flame, Crown
+    Gem, Sword, Map, Zap, ScrollText, Flame, Crown, BookOpen
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -32,6 +32,7 @@ const BottomNav = () => {
             label: 'INTELLIGENCE',
             items: [
                 { path: '/ai-advisor', icon: Bot, label: 'L\'Oracle', color: 'amber', highlight: true },
+                { path: '/academie', icon: BookOpen, label: 'Académie', color: 'purple' },
                 { path: '/progress', icon: Trophy, label: 'Glorification', color: 'yellow' },
                 { path: '/settings', icon: Settings, label: 'Système', color: 'slate' },
             ]
@@ -42,11 +43,12 @@ const BottomNav = () => {
 
     const getColorClasses = (color, isActive) => {
         const colors = {
-            amber: isActive ? 'text-amber-400 bg-amber-500/10 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'text-amber-500/50 hover:text-amber-500',
-            emerald: isActive ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/30' : 'text-emerald-500/50 hover:text-emerald-500',
-            rose: isActive ? 'text-rose-400 bg-rose-500/10 border border-rose-500/30' : 'text-rose-500/50 hover:text-rose-500',
-            yellow: isActive ? 'text-yellow-400 bg-yellow-500/10 border border-yellow-500/30' : 'text-yellow-500/50 hover:text-yellow-500',
-            slate: isActive ? 'text-slate-300 bg-slate-800/40 border border-white/10' : 'text-slate-500 hover:text-slate-200',
+            amber: isActive ? 'text-amber-500 bg-amber-500/10 border border-amber-500/30 shadow-[0_0_15px_var(--primary-glow)]' : 'text-slate-500 hover:text-amber-500',
+            emerald: isActive ? 'text-emerald-500 bg-emerald-500/10 border border-emerald-500/30' : 'text-slate-500 hover:text-emerald-500',
+            rose: isActive ? 'text-rose-500 bg-rose-500/10 border border-rose-500/30' : 'text-slate-500 hover:text-rose-500',
+            yellow: isActive ? 'text-yellow-500 bg-yellow-500/10 border border-yellow-500/30' : 'text-slate-500 hover:text-yellow-500',
+            purple: isActive ? 'text-purple-400 bg-purple-500/10 border border-purple-500/30' : 'text-slate-500 hover:text-purple-400',
+            slate: isActive ? 'text-slate-300 bg-slate-800/40 border border-white/10 light:text-slate-700 light:bg-slate-100 light:border-black/5' : 'text-slate-500 hover:text-slate-200 light:hover:text-slate-800',
         };
         return colors[color] || colors.slate;
     };
@@ -54,7 +56,7 @@ const BottomNav = () => {
     return (
         <>
             {/* --- MOBILE NAVIGATION (Bottom Bar) --- */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-950/90 backdrop-blur-xl border-t border-amber-500/20 z-50 safe-area-bottom">
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-950/90 backdrop-blur-xl border-t border-white/5 light:bg-white/90 light:border-slate-200 z-50 safe-area-bottom transition-all duration-300">
                 <div className="flex justify-around items-center px-2 py-3">
                     {allItems.slice(0, 5).map((item) => {
                         const Icon = item.icon;
@@ -74,7 +76,7 @@ const BottomNav = () => {
             </nav>
 
             {/* --- DESKTOP NAVIGATION (Imperial Sidebar) --- */}
-            <aside className="hidden md:block fixed left-0 top-0 bottom-0 w-72 bg-slate-950 border-r border-amber-500/10 z-40 overflow-y-auto no-scrollbar">
+            <aside className="hidden md:block fixed left-0 top-0 bottom-0 w-72 bg-slate-950 border-r border-white/5 light:bg-white light:border-slate-200 z-40 overflow-y-auto no-scrollbar transition-all duration-500">
                 <div className="p-8">
                     {/* Header: Imperial Insignia */}
                     <div className="mb-12">
@@ -123,7 +125,7 @@ const BottomNav = () => {
                     </div>
 
                     {/* Warrior Status Dock */}
-                    <div className="mt-16 p-6 card-warrior border-amber-500/10 bg-amber-500/5">
+                    <div className="mt-16 p-6 card-warrior border-white/5 bg-slate-900/50 light:bg-slate-50 light:border-slate-200">
                         <div className="flex items-center gap-3 mb-4">
                             <Flame size={16} className="text-orange-500" />
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">État du Monarque</span>
@@ -133,7 +135,7 @@ const BottomNav = () => {
                                 <span className="text-[10px] text-slate-500 font-bold font-ancient">FORCE</span>
                                 <span className="text-xs font-mono font-black text-amber-500">10,240 XP</span>
                             </div>
-                            <div className="w-full h-1 bg-slate-900 rounded-full overflow-hidden">
+                            <div className="w-full h-1 bg-slate-800 light:bg-slate-200 rounded-full overflow-hidden">
                                 <div className="h-full bg-amber-500 w-[65%]" />
                             </div>
                         </div>

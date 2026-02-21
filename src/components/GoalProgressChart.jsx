@@ -16,7 +16,9 @@ import {
     Legend,
     Filler
 } from 'chart.js';
-import { TrendingUp, TrendingDown, Target, Calendar, Zap, AlertTriangle } from 'lucide-react';
+import { TrendingUp, TrendingDown, Target, Calendar, Zap, AlertTriangle, Map } from 'lucide-react';
+import { useUIStore } from '../store';
+import { useCurrency } from '../hooks/useCurrency';
 
 ChartJS.register(
     CategoryScale,
@@ -30,6 +32,7 @@ ChartJS.register(
 );
 
 export default function GoalProgressChart({ goal, contributions = [], onOptimize }) {
+    const { formatCurrency } = useCurrency();
     const [prediction, setPrediction] = useState(null);
     const [optimization, setOptimization] = useState(null);
 
@@ -242,11 +245,7 @@ export default function GoalProgressChart({ goal, contributions = [], onOptimize
                             label += ': ';
                         }
                         if (context.parsed.y !== null) {
-                            label += new Intl.NumberFormat('fr-FR', {
-                                style: 'currency',
-                                currency: 'XOF',
-                                minimumFractionDigits: 0
-                            }).format(context.parsed.y);
+                            label += formatCurrency(context.parsed.y);
                         }
                         return label;
                     }
@@ -266,7 +265,9 @@ export default function GoalProgressChart({ goal, contributions = [], onOptimize
                         size: 11
                     },
                     callback: function (value) {
-                        return (value / 1000000) + 'M';
+                        if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+                        if (value >= 1000) return (value / 1000).toFixed(0) + 'k';
+                        return value;
                     }
                 }
             },
@@ -287,13 +288,6 @@ export default function GoalProgressChart({ goal, contributions = [], onOptimize
         }
     };
 
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('fr-FR', {
-            style: 'currency',
-            currency: 'XOF',
-            minimumFractionDigits: 0
-        }).format(amount);
-    };
 
     const formatDate = (date) => {
         return new Date(date).toLocaleDateString('fr-FR', {

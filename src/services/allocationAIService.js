@@ -219,13 +219,7 @@ Sois DIRECT et SANS PITIÉ pour les dépenses futiles.`;
     }
 }
 
-const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('fr-FR', {
-        style: 'currency',
-        currency: 'XOF',
-        minimumFractionDigits: 0
-    }).format(amount);
-};
+import { formatCurrency } from './currencyService';
 
 export default {
     getAllocationAdvice,

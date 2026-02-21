@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { useAuthStore, useUIStore } from './store';
 import { onAuthStateChange } from './lib/supabase';
 import { initSyncListener } from './services/offlineService';
+import { updateExchangeRates } from './services/currencyService';
 
 // Pages
 import LoginPage from './pages/LoginPage';
@@ -16,6 +17,7 @@ import ProgressPage from './pages/ProgressPage';
 import SettingsPage from './pages/SettingsPage';
 import AIAdvisorPage from './pages/AIAdvisorPage';
 import AllocationPage from './pages/AllocationPage';
+import AcademiePage from './pages/AcademiePage';
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -27,8 +29,17 @@ function App() {
     const { theme } = useUIStore();
 
     useEffect(() => {
-        // Appliquer le thème
+        // Init Exchange Rates
+        updateExchangeRates();
+
+        // Appliquer le thème via classe (pour le CSS moderne) et attribut (pour compatibilité)
+        if (theme === 'light') {
+            document.documentElement.classList.add('light');
+        } else {
+            document.documentElement.classList.remove('light');
+        }
         document.documentElement.setAttribute('data-theme', theme);
+
         // Init Offline Sync Listener
         initSyncListener();
     }, [theme]);
@@ -71,6 +82,7 @@ function App() {
                             <Route path="/debts" element={<DebtsPage />} />
                             <Route path="/progress" element={<ProgressPage />} />
                             <Route path="/allocation" element={<AllocationPage />} />
+                            <Route path="/academie" element={<AcademiePage />} />
                             <Route path="/ai-advisor" element={<AIAdvisorPage />} />
                             <Route path="/settings" element={<SettingsPage />} />
                         </Route>
@@ -87,21 +99,25 @@ function App() {
                 toastOptions={{
                     duration: 3000,
                     style: {
-                        background: 'var(--bg-card)',
-                        color: 'var(--text-primary)',
-                        border: '1px solid var(--border)',
-                        borderRadius: 'var(--radius-md)',
-                        boxShadow: 'var(--shadow-lg)',
+                        background: 'var(--card-bg)',
+                        color: 'var(--text-main)',
+                        border: '1px solid var(--card-border)',
+                        borderRadius: '1rem',
+                        backdropFilter: 'blur(10px)',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
                     },
                     success: {
                         iconTheme: {
-                            primary: 'var(--positive)',
+                            primary: 'var(--emerald)',
                             secondary: 'white',
                         },
                     },
                     error: {
                         iconTheme: {
-                            primary: 'var(--negative)',
+                            primary: 'var(--rose)',
                             secondary: 'white',
                         },
                     },

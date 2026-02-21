@@ -396,6 +396,30 @@ export const ALLOCATION_STRATEGIES = {
             education: 5
         },
         wisdomSources: ["modern", "china"]
+    },
+    operateur_tech: {
+        name: "Opérateur Tech Afrique 🇬🇳 (Structure Impériale)",
+        description: "Optimisé pour un entrepreneur tech de 16 ans en Guinée — Phase construction d'empire. Capital + Croissance + Compétences avant tout.",
+        icon: "⚔️",
+        color: "#F59E0B",
+        allocation: {
+            savings: 25,  // Épargne stratégique — fonds de guerre inviolable
+            emergency: 10,  // Imprévus — environnement instable
+            business: 25,  // Business / Velmo — arme principale
+            skills: 15,  // Compétences — le vrai multiplicateur
+            internet: 5,  // Internet & outils — infrastructure minimale
+            food: 15,  // Nourriture — carburant de performance
+            transport: 3,  // Transport — optimisé, purposeful
+            comfort: 2,  // Confort — récompense rare, jamais habitude
+        },
+        wisdomSources: ["babylon", "modern"],
+        manifesto: [
+            "Tu n'es pas un salarié. Tu es un opérateur en construction d'empire.",
+            "La richesse n'est pas ce que tu gagnes. C'est ce que tu gardes + ce que tu fais travailler.",
+            "Si ton revenu augmente, ton style de vie ne bouge pas. Seules épargne et business augmentent.",
+            "25% de chaque franc gagné est intouchable. Dépenser l'épargne = trahison stratégique.",
+            "Les compétences à 16 ans sont des investissements à 100x. Priorise-les.",
+        ]
     }
 };
 
@@ -407,7 +431,7 @@ export const STRATEGIC_ADVICE = {
             "Commencez petit: même 5% d'épargne est un début",
             "Concentrez-vous sur l'augmentation de vos compétences (éducation)",
             "Évitez absolument les dettes à intérêt élevé",
-            "Créez un fonds d'urgence de 500-1000 FCFA d'abord"
+            "Créez un fonds d'urgence initial dès que possible"
         ],
         recommendedStrategy: "conservative"
     },

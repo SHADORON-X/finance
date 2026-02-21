@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Search, Bell, LogOut, Bot, Sparkles, ScrollText, X } from 'lucide-react';
+import { Search, Bell, LogOut, Bot, Sparkles, ScrollText, X, Sun, Moon } from 'lucide-react';
 import { useAuthStore, useFinanceStore, useUIStore } from '../store';
 import { signOut } from '../services/authService';
 import { getGamificationData, getCurrentRank } from '../services/gamificationService';
@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 const Header = () => {
     const { user, logout } = useAuthStore();
     const { gamification, setGamification } = useFinanceStore();
-    const { oracleVisions, setOracleVisions } = useUIStore();
+    const { oracleVisions, setOracleVisions, theme, toggleTheme } = useUIStore();
     const [rank, setRank] = useState(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isLoadingVisions, setIsLoadingVisions] = useState(false);
@@ -80,7 +80,7 @@ const Header = () => {
     };
 
     return (
-        <header className="fixed top-0 left-0 right-0 glass border-b border-slate-800 z-50">
+        <header className="fixed top-0 left-0 right-0 backdrop-blur-3xl bg-slate-950/60 border-b border-white/5 z-50 transition-all duration-500 light:bg-white/80 light:border-slate-200">
             <div className="max-w-[1200px] mx-auto px-4 py-3 flex items-center justify-between">
                 {/* Logo */}
                 <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
@@ -88,20 +88,40 @@ const Header = () => {
                         ⚔️
                     </div>
                     <div>
-                        <h1 className="text-sm font-black text-white tracking-widest">SHADORON</h1>
+                        <h1 className="text-sm font-black text-white light:text-slate-900 tracking-widest">SHADORON</h1>
                         <p className="text-[9px] text-amber-500 font-bold uppercase tracking-tighter">Budget Discipline</p>
                     </div>
                 </div>
 
                 {/* Actions */}
                 <div className="flex items-center gap-2">
+                    {/* Theme Toggle */}
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={toggleTheme}
+                        className="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-900/50 border border-white/5 text-slate-400 hover:text-amber-500 light:bg-white light:border-black/5 light:text-slate-600 shadow-sm"
+                    >
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={theme}
+                                initial={{ rotate: -90, opacity: 0, scale: 0.5 }}
+                                animate={{ rotate: 0, opacity: 1, scale: 1 }}
+                                exit={{ rotate: 90, opacity: 0, scale: 0.5 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                {theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
+                            </motion.div>
+                        </AnimatePresence>
+                    </motion.button>
+
                     {/* Rank Badge */}
                     {rank && (
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800">
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/50 border border-white/5 light:bg-white light:border-black/5">
                             <span className="text-base">{rank.icon}</span>
                             <div className="hidden min-[500px]:block text-left">
                                 <div className="text-[10px] font-black text-amber-500 leading-none">{rank.name}</div>
-                                <div className="text-[8px] text-slate-500 leading-none mt-1 uppercase font-bold">{gamification.xp} XP</div>
+                                <div className="text-[8px] text-slate-500 leading-none mt-1 uppercase font-bold">{gamification?.xp || 0} XP</div>
                             </div>
                         </div>
                     )}

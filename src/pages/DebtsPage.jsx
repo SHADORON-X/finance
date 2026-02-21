@@ -8,6 +8,7 @@ import {
 import { useAuthStore } from '../store';
 import { getDebts, createDebt, addDebtPayment, deleteDebt } from '../services/debtService';
 import toast from 'react-hot-toast';
+import { useCurrency } from '../hooks/useCurrency';
 
 const DebtsPage = () => {
     const { user } = useAuthStore();
@@ -89,7 +90,7 @@ const DebtsPage = () => {
         }
     };
 
-    const formatCurrency = (amount) => Math.round(amount).toLocaleString('fr-FR') + ' FCFA';
+    const { formatCurrency } = useCurrency();
 
     // Stats Calculs
     const activeDebts = debts.filter(d => d.remaining_amount > 0);
@@ -335,7 +336,7 @@ const DebtsPage = () => {
                                             className="bg-slate-950/50 border border-white/5 rounded-xl px-4 py-4 w-full text-2xl font-mono font-black text-rose-500 outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500/20 transition-all pr-16"
                                             placeholder="0"
                                         />
-                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black text-rose-900">FCFA</span>
+                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black text-rose-900 uppercase">Volume</span>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">

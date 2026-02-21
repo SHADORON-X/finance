@@ -5,24 +5,58 @@
 @tailwind utilities;
 
 :root {
+  /* DARK THEME (Default) */
   --bg-space: #020617;
+  --bg-gradient-1: rgba(30, 41, 59, 0.7);
+  --bg-gradient-2: rgba(15, 23, 42, 1);
+  --text-main: #f1f5f9;
+  --text-muted: #64748b;
+  --text-gold: #f59e0b;
+  --card-bg: rgba(15, 23, 42, 0.4);
+  --card-border: rgba(255, 255, 255, 0.05);
   --primary: #f59e0b;
-  /* Or Impérial */
   --primary-glow: rgba(245, 158, 11, 0.4);
   --emerald: #10b981;
   --emerald-glow: rgba(16, 185, 129, 0.3);
   --rose: #f43f5e;
   --rose-glow: rgba(244, 63, 94, 0.3);
   --glass-border: rgba(255, 255, 255, 0.1);
+  --input-bg: rgba(2, 6, 23, 0.8);
+  --sidebar-bg: rgba(2, 6, 23, 0.8);
+}
+
+.light {
+  /* LIGHT THEME */
+  --bg-space: #f8fafc;
+  --bg-gradient-1: rgba(241, 245, 249, 1);
+  --bg-gradient-2: rgba(226, 232, 240, 0.8);
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --text-gold: #b45309;
+  --card-bg: rgba(255, 255, 255, 0.7);
+  --card-border: rgba(0, 0, 0, 0.05);
+  --primary: #d97706;
+  --primary-glow: rgba(217, 119, 6, 0.2);
+  --emerald: #059669;
+  --emerald-glow: rgba(5, 150, 105, 0.15);
+  --rose: #e11d48;
+  --rose-glow: rgba(225, 29, 72, 0.15);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --input-bg: #ffffff;
+  --sidebar-bg: rgba(255, 255, 255, 0.9);
+}
+
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.1s ease;
 }
 
 body {
   background-color: var(--bg-space);
   background-image:
-    radial-gradient(circle at 50% 0%, rgba(30, 41, 59, 0.7) 0%, transparent 70%),
-    radial-gradient(circle at 0% 100%, rgba(15, 23, 42, 1) 0%, transparent 50%),
+    radial-gradient(circle at 50% 0%, var(--bg-gradient-1) 0%, transparent 70%),
+    radial-gradient(circle at 0% 100%, var(--bg-gradient-2) 0%, transparent 50%),
     url("https://www.transparenttextures.com/patterns/micro-carbon.png");
-  color: #f1f5f9;
+  color: var(--text-main);
   font-family: 'Plus Jakarta Sans', sans-serif;
   overflow-x: hidden;
   min-height: 100vh;
@@ -38,7 +72,7 @@ body {
     linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%),
     linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
   background-size: 100% 4px, 3px 100%;
-  opacity: 0.15;
+  opacity: 0.12;
 }
 
 .cockpit-vignette {
@@ -46,7 +80,12 @@ body {
   inset: 0;
   pointer-events: none;
   z-index: 9998;
-  background: radial-gradient(circle at center, transparent 30%, rgba(0, 0, 0, 0.6) 100%);
+  background: radial-gradient(circle at center, transparent 30%, rgba(0, 0, 0, 0.4) 100%);
+}
+
+.light .cockpit-overlay,
+.light .cockpit-vignette {
+  opacity: 0.05;
 }
 
 /* --- TYPOGRAPHIE IMPÉRIALE --- */
@@ -60,16 +99,17 @@ body {
 
 .heading-gold {
   @apply font-ancient tracking-[0.1em] uppercase font-black;
-  background: linear-gradient(to bottom, #fff 20%, #f59e0b 50%, #78350f 100%);
+  background: linear-gradient(to bottom, var(--text-main) 20%, var(--primary) 50%, #78350f 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.3));
+  filter: drop-shadow(0 0 10px var(--primary-glow));
 }
 
 /* --- CARTES DE POUVOIR --- */
 .card-warrior {
-  @apply relative overflow-hidden backdrop-blur-2xl rounded-tr-3xl rounded-bl-3xl border transition-all duration-500 bg-slate-900/40;
-  border-color: var(--glass-border);
+  @apply relative overflow-hidden backdrop-blur-2xl rounded-tr-3xl rounded-bl-3xl border transition-all duration-500;
+  background-color: var(--card-bg);
+  border-color: var(--card-border);
 }
 
 .card-warrior:hover {
@@ -80,18 +120,47 @@ body {
 
 /* --- LES LOIS DE LA RICHESSE --- */
 .law-box {
-  @apply p-6 border-l-4 border-amber-500 bg-amber-500/5 rounded-r-xl relative overflow-hidden;
+  @apply p-6 border-l-4 bg-amber-500/5 rounded-r-xl relative overflow-hidden;
+  border-color: var(--primary);
 }
 
 /* --- BOUTONS TACTIQUES --- */
 .btn-empire {
-  @apply relative px-8 py-3 bg-slate-950 border border-amber-500/30 text-amber-500 font-ancient font-bold tracking-widest transition-all hover:bg-amber-500 hover:text-slate-950 active:scale-95 overflow-hidden;
+  @apply relative px-8 py-3 font-ancient font-bold tracking-widest transition-all active:scale-95 overflow-hidden;
+  background-color: var(--bg-space);
+  border: 1px solid var(--primary-glow);
+  color: var(--primary);
   clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
 }
 
+.btn-empire:hover {
+  background-color: var(--primary);
+  color: var(--bg-space);
+}
+
+.light .btn-empire {
+  @apply bg-white;
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.light .btn-empire:hover {
+  background-color: var(--primary);
+  color: var(--bg-space);
+}
+
 .btn-empire-primary {
-  @apply relative px-8 py-3 bg-amber-600 border border-amber-400 text-slate-950 font-ancient font-bold tracking-widest transition-all hover:bg-amber-500 active:scale-95 shadow-lg shadow-amber-900/40;
+  @apply relative px-8 py-3 font-ancient font-bold tracking-widest transition-all active:scale-95 shadow-lg;
+  background-color: var(--primary);
+  border: 1px solid var(--primary);
+  color: var(--bg-space);
+  box-shadow: 0 0 15px var(--primary-glow);
   clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
+}
+
+.btn-empire-primary:hover {
+  background-color: var(--primary);
+  box-shadow: 0 0 20px var(--primary-glow);
 }
 
 /* --- GRID TACTIQUE --- */
@@ -127,4 +196,17 @@ body {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--primary-glow);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
 }

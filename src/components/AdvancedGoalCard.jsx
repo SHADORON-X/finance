@@ -9,6 +9,7 @@ import {
     Target, TrendingUp, Calendar, CheckCircle2, Plus, Trash2,
     ChevronDown, ChevronUp, Sparkles, Zap, AlertTriangle
 } from 'lucide-react';
+import { useCurrency } from '../hooks/useCurrency';
 import GoalProgressChart from './GoalProgressChart';
 import { analyzeGoalProgress } from '../services/allocationAIService';
 import toast from 'react-hot-toast';
@@ -97,13 +98,7 @@ export default function AdvancedGoalCard({
         }
     };
 
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('fr-FR', {
-            style: 'currency',
-            currency: 'XOF',
-            minimumFractionDigits: 0
-        }).format(amount);
-    };
+    const { formatCurrency } = useCurrency();
 
     const getUrgencyColor = () => {
         if (!optimization) return 'blue';
@@ -121,14 +116,14 @@ export default function AdvancedGoalCard({
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ delay: index * 0.1 }}
             className={`group relative rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-2 transition-all duration-500 overflow-hidden ${isCompleted
-                    ? 'border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.3)]'
-                    : `border-${urgencyColor}-500/30 hover:border-${urgencyColor}-500/60 shadow-xl hover:shadow-2xl`
+                ? 'border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.3)]'
+                : `border-${urgencyColor}-500/30 hover:border-${urgencyColor}-500/60 shadow-xl hover:shadow-2xl`
                 }`}
         >
             {/* Glow Effect */}
             <div className={`absolute -inset-1 bg-gradient-to-r ${isCompleted
-                    ? 'from-emerald-500/20 to-cyan-500/20'
-                    : `from-${urgencyColor}-500/10 to-purple-500/10`
+                ? 'from-emerald-500/20 to-cyan-500/20'
+                : `from-${urgencyColor}-500/10 to-purple-500/10`
                 } opacity-0 group-hover:opacity-100 blur-2xl transition-opacity duration-500`} />
 
             {/* Animated Background Pattern */}
@@ -145,8 +140,8 @@ export default function AdvancedGoalCard({
                     <div className="flex items-center gap-4">
                         <motion.div
                             className={`w-16 h-16 rounded-2xl flex items-center justify-center text-4xl shadow-lg ${isCompleted
-                                    ? 'bg-emerald-500/20 ring-2 ring-emerald-500/50'
-                                    : `bg-${urgencyColor}-500/10 ring-2 ring-${urgencyColor}-500/30`
+                                ? 'bg-emerald-500/20 ring-2 ring-emerald-500/50'
+                                : `bg-${urgencyColor}-500/10 ring-2 ring-${urgencyColor}-500/30`
                                 }`}
                             whileHover={{ scale: 1.1, rotate: 5 }}
                             transition={{ type: 'spring', stiffness: 300 }}
@@ -187,10 +182,10 @@ export default function AdvancedGoalCard({
                                 </span>
                                 {optimization && (
                                     <span className={`px-3 py-1 rounded-full text-xs font-bold ${optimization.urgency === 'high'
-                                            ? 'bg-rose-500/20 text-rose-400 border border-rose-500/50'
-                                            : optimization.urgency === 'medium'
-                                                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/50'
-                                                : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'
+                                        ? 'bg-rose-500/20 text-rose-400 border border-rose-500/50'
+                                        : optimization.urgency === 'medium'
+                                            ? 'bg-amber-500/20 text-amber-400 border border-amber-500/50'
+                                            : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'
                                         }`}>
                                         {optimization.daysRemaining} jours
                                     </span>
@@ -222,8 +217,8 @@ export default function AdvancedGoalCard({
                 <div className="relative h-3 bg-slate-800/50 rounded-full overflow-hidden mb-6 ring-1 ring-slate-700/50">
                     <motion.div
                         className={`absolute top-0 left-0 h-full ${isCompleted
-                                ? 'bg-gradient-to-r from-emerald-400 to-cyan-400 shadow-[0_0_15px_rgba(16,185,129,0.6)]'
-                                : `bg-gradient-to-r from-${urgencyColor}-400 to-purple-400 shadow-[0_0_15px_rgba(59,130,246,0.6)]`
+                            ? 'bg-gradient-to-r from-emerald-400 to-cyan-400 shadow-[0_0_15px_rgba(16,185,129,0.6)]'
+                            : `bg-gradient-to-r from-${urgencyColor}-400 to-purple-400 shadow-[0_0_15px_rgba(59,130,246,0.6)]`
                             }`}
                         initial={{ width: 0 }}
                         animate={{ width: `${progress}%` }}

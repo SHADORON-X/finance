@@ -85,10 +85,6 @@ export const useFinanceStore = create((set, get) => ({
     badges: [],
     setBadges: (badges) => set({ badges }),
 
-    // UI State
-    theme: 'dark',
-    setTheme: (theme) => set({ theme }),
-
     // Refresh functions
     refreshAll: async (userId) => {
         // Cette fonction sera appelée pour rafraîchir toutes les données
@@ -96,50 +92,71 @@ export const useFinanceStore = create((set, get) => ({
     }
 }));
 
-export const useUIStore = create((set) => ({
-    // Modals
-    isGoalModalOpen: false,
-    isDebtModalOpen: false,
-    isTransactionModalOpen: false,
-    isCategoryModalOpen: false,
+export const useUIStore = create(
+    persist(
+        (set) => ({
+            // Modals
+            isGoalModalOpen: false,
+            isDebtModalOpen: false,
+            isTransactionModalOpen: false,
+            isCategoryModalOpen: false,
 
-    openGoalModal: () => set({ isGoalModalOpen: true }),
-    closeGoalModal: () => set({ isGoalModalOpen: false }),
+            openGoalModal: () => set({ isGoalModalOpen: true }),
+            closeGoalModal: () => set({ isGoalModalOpen: false }),
 
-    openDebtModal: () => set({ isDebtModalOpen: true }),
-    closeDebtModal: () => set({ isDebtModalOpen: false }),
+            openDebtModal: () => set({ isDebtModalOpen: true }),
+            closeDebtModal: () => set({ isDebtModalOpen: false }),
 
-    openTransactionModal: () => set({ isTransactionModalOpen: true }),
-    closeTransactionModal: () => set({ isTransactionModalOpen: false }),
+            openTransactionModal: () => set({ isTransactionModalOpen: true }),
+            closeTransactionModal: () => set({ isTransactionModalOpen: false }),
 
-    openCategoryModal: () => set({ isCategoryModalOpen: true }),
-    closeCategoryModal: () => set({ isCategoryModalOpen: false }),
+            openCategoryModal: () => set({ isCategoryModalOpen: true }),
+            closeCategoryModal: () => set({ isCategoryModalOpen: false }),
 
-    // Notifications
-    notifications: [],
-    addNotification: (notification) => set((state) => ({
-        notifications: [...state.notifications, {
-            id: Date.now(),
-            ...notification
-        }]
-    })),
-    removeNotification: (id) => set((state) => ({
-        notifications: state.notifications.filter(n => n.id !== id)
-    })),
+            // Notifications
+            notifications: [],
+            addNotification: (notification) => set((state) => ({
+                notifications: [...state.notifications, {
+                    id: Date.now(),
+                    ...notification
+                }]
+            })),
+            removeNotification: (id) => set((state) => ({
+                notifications: state.notifications.filter(n => n.id !== id)
+            })),
 
-    // Loading states
-    isLoading: false,
-    setLoading: (isLoading) => set({ isLoading }),
+            // Loading states
+            isLoading: false,
+            setLoading: (isLoading) => set({ isLoading }),
 
-    // active tab
-    activeTab: 'dashboard',
-    setActiveTab: (tab) => set({ activeTab: tab }),
+            // active tab
+            activeTab: 'dashboard',
+            setActiveTab: (tab) => set({ activeTab: tab }),
 
-    // Visions de l'Oracle
-    oracleVisions: [],
-    setOracleVisions: (visions) => set({ oracleVisions: visions }),
+            // Theme
+            theme: 'dark',
+            setTheme: (theme) => set({ theme }),
+            toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
 
-    // View mode (all/month)
-    viewMode: 'all',
-    setViewMode: (mode) => set({ viewMode: mode })
-}));
+            // Currency
+            currency: 'GNF',
+            setCurrency: (currency) => set({ currency }),
+
+            // Visions de l'Oracle
+            oracleVisions: [],
+            setOracleVisions: (visions) => set({ oracleVisions: visions }),
+
+            // View mode (all/month)
+            viewMode: 'all',
+            setViewMode: (mode) => set({ viewMode: mode })
+        }),
+        {
+            name: 'shadoron-ui-storage',
+            partialize: (state) => ({
+                theme: state.theme,
+                activeTab: state.activeTab,
+                currency: state.currency
+            })
+        }
+    )
+);

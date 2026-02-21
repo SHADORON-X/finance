@@ -36,7 +36,7 @@ Tu n'es PAS un chatbot qui récite des règles. Tu es un MENTOR SAGE qui:
 
 💬 STYLE DE COMMUNICATION:
 - COURT et PERCUTANT (2-3 paragraphes max)
-- CHIFFRES CONCRETS ("Économise 50,000 FCFA ce mois" pas "économise plus")
+- CHIFFRES CONCRETS ("Épargne ${formatCurrency(50000)} ce mois" pas "économise plus")
 - MÉTAPHORES PUISSANTES ("Tes dettes sont des sangsues sur ton empire")
 - TON AUTORITAIRE mais BIENVEILLANT
 - QUESTIONS SOCRATIQUES qui font réfléchir
@@ -68,7 +68,7 @@ Chaque mot doit avoir le poids de l'or.`,
 /**
  * Fonctions utilitaires
  */
-const formatCurrency = (amount) => Math.round(amount).toLocaleString('fr-FR') + ' FCFA';
+import { formatCurrency } from './currencyService';
 
 /**
  * Helper générique pour appeler l'API Pollinations
@@ -359,7 +359,7 @@ export const detectFinancialLeaks = async (transactions) => {
         const expenseLog = transactions
             .filter(t => t.type === 'expense')
             .slice(0, 30)
-            .map(t => `${t.categories?.name || 'Inconnue'}: ${t.amount} FCFA (${t.note || ''})`)
+            .map(t => `${t.categories?.name || 'Inconnue'}: ${formatCurrency(t.amount)} (${t.note || ''})`)
             .join('\n');
 
         const prompt = `Agis comme un Détective de Guerre Financière.
@@ -417,12 +417,13 @@ Exemple: ["L'or fuit les mains impatientes. Diffère cet achat.", "Ta dette iPho
 };
 
 export default {
-    getMarketInsights,
     getFinancialAdvice,
+    getMarketInsights,
     analyzeTransaction,
     suggestGoals,
     getDebtRepaymentPlan,
     chatWithAI,
     getProactiveWisdom,
+    detectFinancialLeaks,
     getOracleVisions
 };

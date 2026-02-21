@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Target, TrendingUp, Zap, Crown, Flame } from 'lucide-react';
+import { useCurrency } from '../hooks/useCurrency';
 
 const ConquestSimulator = ({ initialBalance }) => {
+    const { formatCurrency } = useCurrency();
     const [principal, setPrincipal] = useState(initialBalance || 1000000); // Montant initial
     const [monthly, setMonthly] = useState(100000);    // Épargne mensuelle
     const [rate, setRate] = useState(10);              // Taux annuel (%)
@@ -27,8 +29,6 @@ const ConquestSimulator = ({ initialBalance }) => {
 
         setFutureValue(Math.round(compoundInterest + annuity));
     };
-
-    const formatCurrency = (val) => val.toLocaleString('fr-FR') + ' FCFA';
 
     return (
         <div className="card-warrior p-8 bg-slate-950/80 border-amber-500/20">
