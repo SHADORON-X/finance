@@ -19,7 +19,8 @@ export const createGoal = async (userId, goalData) => {
                 category: goalData.category || 'savings',
                 priority: goalData.priority || 1,
                 deadline: goalData.deadline || null,
-                icon: goalData.icon || '🎯'
+                icon: goalData.icon || '🎯',
+                allocation_percent: goalData.allocation_percent || 0
             }
         ])
         .select()
@@ -109,6 +110,55 @@ export const contributeToGoal = async (goalId, userId, amount, note = '') => {
         console.error('Error contributing to goal:', error);
         throw error;
     }
+};
+
+/**
+ * Mettre à jour le pourcentage d'allocation d'un objectif
+ */
+export const updateGoalAllocationPercent = async (goalId, userId, newPercent) => {
+    const { data, error } = await supabase
+        .from('goals')
+        .update({ allocation_percent: newPercent })
+        .eq('id', goalId)
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+};
+
+/**
+ * Répartir un revenu global sur tous les objectifs selon leur % d'allocation
+ */
+export const distributeDailyIncomeToGoals = async (userId, totalIncome, note = 'Revenu du jour') => {
+    // Récupérer les objectifs actifs qui ont un % d'allocation > 0
+    const { data: goals, error } = await supabase
+        .from('goals')
+        .select('id, allocation_percent')
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .gt('allocation_percent', 0);
+
+    if (error) throw error;
+    if (!goals || goals.length === 0) return [];
+
+    let contributions = [];
+
+    // Pour chaque objectif, calculer le montant et contribuer
+    for (const goal of goals) {
+        const amountToContribute = (totalIncome * goal.allocation_percent) / 100;
+        if (amountToContribute > 0) {
+            try {
+                const contrib = await contributeToGoal(goal.id, userId, amountToContribute, note);
+                contributions.push(contrib);
+            } catch (e) {
+                console.error(`Error contributing to goal ${goal.id}:`, e);
+            }
+        }
+    }
+
+    return contributions;
 };
 
 /**

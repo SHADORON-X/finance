@@ -19,6 +19,7 @@ import { useCurrency } from '../hooks/useCurrency';
 // Composants de Guerre
 import WarRoomChart from '../components/WarRoomChart';
 import ConquestSimulator from '../components/ConquestSimulator';
+import DailyRevenueCard from '../components/DailyRevenueCard';
 
 const RICHE_LAWS = [
     { id: 1, text: "Commence à garnir ta bourse : Épargne 10% de tout ce que tu gagnes.", ref: "L'Homme le plus riche de Babylone" },
@@ -203,8 +204,11 @@ const DashboardPage = () => {
                 </div>
             </div>
 
+            {/* Saisine Journalière (Feature au centre du board) */}
+            <DailyRevenueCard onUpdate={loadDashboardData} />
+
             {/* --- STRATÈGE COMMAND CENTER --- */}
-            <StrategeCommandCenter />
+            <StrategeCommandCenter balances={finances?.balances || []} />
 
             {/* --- MODULE 1: THE WAR ROOM (Graphique) --- */}
             <div className="space-y-4">
@@ -344,22 +348,35 @@ const fmtK = n => {
     return v >= 1000 ? (v / 1000).toFixed(0) + 'k' : String(v);
 };
 
-function StrategeCommandCenter() {
+function StrategeCommandCenter({ balances }) {
     const { formatCurrency } = useCurrency();
     const storageKey = `dash_strat_${todayKey()}`;
     const [checks, setChecks] = useState(() => {
         try { return JSON.parse(localStorage.getItem(storageKey)) || []; }
         catch { return []; }
     });
-    const [funds, setFunds] = useState(() => {
+
+    // Cibles par défaut (peuvent toujours être customisées/stockées)
+    const [fundTargets, setFundTargets] = useState(() => {
         try {
-            return JSON.parse(localStorage.getItem('strat_funds')) || {
-                security: { current: 0, target: 300000 },
-                business: { current: 0, target: 500000 },
-                equipment: { current: 0, target: 200000 },
+            return JSON.parse(localStorage.getItem('strat_funds_targets')) || {
+                security: 300000,
+                business: 500000,
+                equipment: 200000,
             };
-        } catch { return { security: { current: 0, target: 300000 }, business: { current: 0, target: 500000 }, equipment: { current: 0, target: 200000 } }; }
+        } catch { return { security: 300000, business: 500000, equipment: 200000 }; }
     });
+
+    // LECTURE DYNAMIQUE DES BALANCES (Plus de valeurs en dur)
+    const getBalanceByNames = (names) => {
+        return balances.filter(b => names.includes(b.categories?.name)).reduce((sum, b) => sum + b.amount, 0);
+    };
+
+    const funds = {
+        security: { current: getBalanceByNames(['Épargne Stratégique', 'Fonds Imprévus']), target: fundTargets.security },
+        business: { current: getBalanceByNames(['Projet / Velmo']), target: fundTargets.business },
+        equipment: { current: getBalanceByNames(['Compétences', 'Internet & Outils']), target: fundTargets.equipment },
+    };
 
     const toggle = (id) => {
         const next = checks.includes(id) ? checks.filter(c => c !== id) : [...checks, id];

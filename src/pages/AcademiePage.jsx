@@ -1,13 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     BookOpen, CheckCircle2, Circle, Flame, Brain,
     Crown, Target, Sparkles, ChevronDown, ChevronRight,
     TrendingUp, Shield, Zap, Star, Calendar, ScrollText,
     Edit3, Save, X, AlertCircle, Award, Lock,
-    Sword, ShieldCheck, HelpCircle, Timer, Wrench, Plus, Trash2
+    Sword, ShieldCheck, HelpCircle, Timer, Wrench, Plus, Trash2,
+    Upload, Library, FileText, Loader
 } from 'lucide-react';
 import { useCurrency } from '../hooks/useCurrency';
+import { useAuthStore } from '../store';
+import BookReader from '../components/BookReader';
+import { uploadBook, getUserBooks, deleteBook } from '../services/bookService';
+import toast from 'react-hot-toast';
 
 // ============================================================
 // BIBLIOTHÈQUE IMPÉRIALE — 10 Livres Fondateurs
@@ -459,10 +464,119 @@ const THREE_QUESTIONS = [
 
 export default function AcademiePage() {
     const { formatCurrency } = useCurrency();
+    const { user } = useAuthStore();
     const [activeTab, setActiveTab] = useState('library');
     const [expandedBook, setExpandedBook] = useState(null);
     const [libFilter, setLibFilter] = useState('Tous'); // filtre catégorie
-    const [readingBook, setReadingBook] = useState(null); // livre ouvert en modal
+    const [readingBook, setReadingBook] = useState(null); // livre préchargé ouvert en modal
+
+    // ── MES LIVRES — state ────────────────────────────────────
+    const [userBooks, setUserBooks] = useState([]);
+    const [loadingBooks, setLoadingBooks] = useState(false);
+    const [readingUserBook, setReadingUserBook] = useState(null); // livre uploadé en lecture
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [uploadFile, setUploadFile] = useState(null);
+    const [uploadMeta, setUploadMeta] = useState({ title: '', author: '', category: 'Finance', coverEmoji: '📕' });
+    const [uploading, setUploading] = useState(false);
+    const [dragOver, setDragOver] = useState(false);
+    const fileInputRef = useRef(null);
+
+    const COVER_EMOJIS = ['📕', '📗', '📘', '📙', '📒', '📓', '📔', '📖', '🏛️', '💰', '🧠', '⚔️', '🎯', '🚀', '💎', '👑'];
+    const UPLOAD_CATEGORIES = ['Finance', 'Mindset', 'Business', 'Productivité', 'Investissement', 'Marketing', 'Biographie', 'Autres'];
+
+    // Charger les livres uploadés
+    useEffect(() => {
+        if (user) loadUserBooks();
+    }, [user]);
+
+    const loadUserBooks = async () => {
+        setLoadingBooks(true);
+        try {
+            const books = await getUserBooks(user.id);
+            setUserBooks(books);
+        } catch (e) {
+            console.error('Erreur chargement livres:', e);
+        } finally {
+            setLoadingBooks(false);
+        }
+    };
+
+    const handleFileDrop = (e) => {
+        e.preventDefault();
+        setDragOver(false);
+        const file = e.dataTransfer?.files?.[0] || e.target?.files?.[0];
+        if (!file) return;
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (!['pdf', 'epub'].includes(ext)) {
+            toast.error('Format non supporté. PDF uniquement.');
+            return;
+        }
+        setUploadFile(file);
+        setUploadMeta(prev => ({ ...prev, title: file.name.replace(/\.[^.]+$/, '') }));
+    };
+
+    const handleUpload = async () => {
+        if (!uploadFile || !user) return;
+        if (!uploadMeta.title.trim()) {
+            toast.error('Donne un titre à ce livre.');
+            return;
+        }
+
+        // 1. Optimistic UI : Ajout temporaire immédiatement
+        const tempId = 'temp_' + Date.now();
+        const optimisticBook = {
+            id: tempId,
+            title: uploadMeta.title,
+            author: uploadMeta.author || 'Auteur inconnu',
+            category: uploadMeta.category || 'Finance',
+            cover_emoji: uploadMeta.coverEmoji || '📕',
+            file_type: uploadFile.name.split('.').pop().toLowerCase(),
+            file_size: uploadFile.size,
+            read_progress: 0,
+            signed_url: URL.createObjectURL(uploadFile), // URL locale
+            isUploading: true
+        };
+
+        setUserBooks(prev => [optimisticBook, ...prev]);
+        setShowUploadModal(false);
+
+        // Sauvegarde des données avant de reset l'état
+        const fileToUpload = uploadFile;
+        const metaToUpload = { ...uploadMeta };
+
+        setUploadFile(null);
+        setUploadMeta({ title: '', author: '', category: 'Finance', coverEmoji: '📕' });
+
+        const toastId = toast.loading('Envoi du parchemin en cours...');
+
+        // 2. Upload silencieux en arrière-plan
+        try {
+            const newBook = await uploadBook(fileToUpload, user.id, {
+                ...metaToUpload,
+                coverColor: 'amber',
+            });
+
+            // 3. Remplacement du livre temporaire par le vrai livre (qui a le bon ID Supabase)
+            setUserBooks(prev => prev.map(b => b.id === tempId ? newBook : b));
+            toast.success('📚 Livre stocké dans le coffre de guilde !', { id: toastId });
+        } catch (err) {
+            console.error(err);
+            // Suppression en cas d'erreur
+            setUserBooks(prev => prev.filter(b => b.id !== tempId));
+            toast.error(`Erreur lors du scellement : ${err.message}`, { id: toastId });
+        }
+    };
+
+    const handleDeleteUserBook = async (book) => {
+        if (!confirm(`Supprimer "${book.title}" de ta bibliothèque ?`)) return;
+        try {
+            await deleteBook(user.id, book.id, book.file_path);
+            setUserBooks(prev => prev.filter(b => b.id !== book.id));
+            toast.success('Livre supprimé.');
+        } catch (err) {
+            toast.error('Erreur lors de la suppression.');
+        }
+    };
 
     // Reading progress: { [bookId]: Set of completed chapter indices }
     const [readChapters, setReadChapters] = useState(() => load('academie_chapters', {}));
@@ -599,17 +713,23 @@ export default function AcademiePage() {
 
             {/* Tabs */}
             <div className="sticky top-0 z-30 bg-slate-950/95 backdrop-blur-xl border-b border-white/5 mb-8">
-                <div className="max-w-6xl mx-auto px-4 flex gap-1 overflow-x-auto">
+                <div className="max-w-6xl mx-auto px-4 flex gap-1 overflow-x-auto no-scrollbar">
                     {[
                         { id: 'library', label: 'Bibliothèque', icon: <BookOpen size={15} /> },
+                        { id: 'mybooks', label: 'Mes Livres', icon: <Library size={15} />, badge: userBooks.length || null },
                         { id: 'stratege', label: 'Stratège', icon: <Sword size={15} /> },
                         { id: 'habits', label: 'Habitudes', icon: <Flame size={15} /> },
                         { id: 'journal', label: 'Journal', icon: <Edit3 size={15} /> },
                         { id: 'biases', label: 'Biais Mentaux', icon: <Brain size={15} /> },
                     ].map(tab => (
                         <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                            className={`flex items-center gap-2 px-5 py-4 text-[9px] font-black uppercase tracking-widest whitespace-nowrap border-b-2 transition-all ${activeTab === tab.id ? 'border-amber-500 text-amber-500' : 'border-transparent text-slate-600 hover:text-slate-400'}`}>
+                            className={`relative flex items-center gap-2 px-5 py-4 text-[9px] font-black uppercase tracking-widest whitespace-nowrap border-b-2 transition-all ${activeTab === tab.id ? 'border-amber-500 text-amber-500' : 'border-transparent text-slate-600 hover:text-slate-400'}`}>
                             {tab.icon}{tab.label}
+                            {tab.badge ? (
+                                <span className="absolute top-2 right-1 min-w-[16px] h-4 flex items-center justify-center bg-amber-500 text-slate-950 text-[7px] font-black rounded-full px-1">
+                                    {tab.badge}
+                                </span>
+                            ) : null}
                         </button>
                     ))}
                 </div>
@@ -617,6 +737,160 @@ export default function AcademiePage() {
 
             <div className="max-w-6xl mx-auto px-4">
                 <AnimatePresence mode="wait">
+
+                    {/* ════════════════════════════════════════════
+                        TAB — MES LIVRES UPLOADÉS
+                    ════════════════════════════════════════════ */}
+                    {activeTab === 'mybooks' && (
+                        <motion.div key="mybooks" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
+
+                            {/* Header actions */}
+                            <div className="flex items-center justify-between gap-4 flex-wrap">
+                                <div>
+                                    <h2 className="font-ancient font-black text-white text-sm uppercase tracking-widest">Ma Bibliothèque Personnelle</h2>
+                                    <p className="text-[9px] text-slate-500 font-bold mt-0.5 uppercase tracking-widest">
+                                        {userBooks.length} livre{userBooks.length !== 1 ? 's' : ''} uploadé{userBooks.length !== 1 ? 's' : ''}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setShowUploadModal(true)}
+                                    className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-amber-500/20 active:scale-95"
+                                >
+                                    <Upload size={14} /> Uploader un Livre
+                                </button>
+                            </div>
+
+                            {/* États */}
+                            {loadingBooks ? (
+                                <div className="flex flex-col items-center justify-center py-20 gap-4">
+                                    <Loader size={28} className="text-amber-500 animate-spin" />
+                                    <p className="text-[10px] text-slate-600 font-black uppercase tracking-widest">Chargement des parchemins...</p>
+                                </div>
+                            ) : userBooks.length === 0 ? (
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="flex flex-col items-center justify-center py-24 gap-5 card-warrior bg-slate-900/40"
+                                >
+                                    <div className="w-24 h-24 rounded-3xl bg-amber-500/10 border-2 border-dashed border-amber-500/30 flex items-center justify-center text-5xl">
+                                        📚
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="font-ancient font-black text-slate-400 text-sm uppercase tracking-widest">Bibliothèque Vide</p>
+                                        <p className="text-[9px] text-slate-600 font-bold mt-1 max-w-xs">
+                                            Upload ton premier livre PDF. Il sera sauvegardé dans ton coffre sécurisé.
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowUploadModal(true)}
+                                        className="flex items-center gap-2 px-6 py-3 rounded-2xl border-2 border-dashed border-amber-500/50 hover:border-amber-500 text-amber-500 text-[10px] font-black uppercase tracking-widest transition-all"
+                                    >
+                                        <Upload size={14} /> Uploader mon premier livre
+                                    </button>
+                                </motion.div>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                                    {userBooks.map((book, i) => {
+                                        const pct = book.read_progress || 0;
+                                        const sizeKb = book.file_size ? (book.file_size / 1024).toFixed(0) : '?';
+                                        const sizeMb = book.file_size ? (book.file_size / 1048576).toFixed(1) : '?';
+                                        return (
+                                            <motion.div
+                                                key={book.id}
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: i * 0.06 }}
+                                                className="card-warrior bg-slate-900/60 flex flex-col group overflow-hidden hover:border-amber-500/30 transition-all"
+                                            >
+                                                {/* Cover */}
+                                                <div className="relative h-40 bg-gradient-to-br from-amber-500/10 via-slate-900 to-purple-500/10 flex items-center justify-center overflow-hidden">
+                                                    <div className="absolute inset-0 bg-gradient-to-b from-transparent to-slate-900/60" />
+                                                    <span className="text-7xl">{book.cover_emoji || '📕'}</span>
+                                                    {/* Badge catégorie */}
+                                                    <div className="absolute top-3 left-3 px-2 py-1 bg-slate-950/80 backdrop-blur-sm rounded-lg border border-amber-500/20">
+                                                        <span className="text-[7px] font-black text-amber-500 uppercase tracking-widest">{book.category}</span>
+                                                    </div>
+                                                    {/* Bouton supprimer */}
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleDeleteUserBook(book); }}
+                                                        className="absolute top-3 right-3 p-2 bg-rose-500/10 border border-rose-500/20 rounded-lg text-rose-400 opacity-0 group-hover:opacity-100 hover:bg-rose-500/20 transition-all"
+                                                    >
+                                                        <Trash2 size={12} />
+                                                    </button>
+                                                    {/* Format badge */}
+                                                    <div className="absolute bottom-3 right-3 px-2 py-0.5 bg-slate-800 rounded-md border border-slate-700">
+                                                        <span className="text-[7px] font-black text-slate-400 uppercase">{book.file_type?.toUpperCase()}</span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Info */}
+                                                <div className="p-4 flex-1 flex flex-col">
+                                                    <h3 className="font-ancient font-black text-white text-[11px] uppercase tracking-wide leading-tight line-clamp-2">
+                                                        {book.title}
+                                                    </h3>
+                                                    <p className="text-[9px] text-slate-500 font-bold mt-1">{book.author}</p>
+
+                                                    {/* Taille fichier */}
+                                                    <p className="text-[8px] text-slate-700 font-bold mt-0.5">
+                                                        {book.file_size > 1048576 ? `${sizeMb} Mo` : `${sizeKb} Ko`}
+                                                    </p>
+
+                                                    {/* Progress bar */}
+                                                    <div className="mt-3">
+                                                        <div className="flex justify-between text-[8px] font-black text-slate-600 mb-1 uppercase">
+                                                            <span>Progression</span>
+                                                            <span className="text-amber-500">{pct}%</span>
+                                                        </div>
+                                                        <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                                            <motion.div
+                                                                className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full"
+                                                                initial={{ width: 0 }}
+                                                                animate={{ width: `${pct}%` }}
+                                                                transition={{ duration: 0.8 }}
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Bouton lire / loader */}
+                                                    {book.isUploading ? (
+                                                        <button
+                                                            disabled
+                                                            className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-800 text-slate-500 text-[9px] font-black uppercase tracking-widest cursor-not-allowed"
+                                                        >
+                                                            <Loader size={13} className="animate-spin" />
+                                                            Upload en cours...
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => setReadingUserBook(book)}
+                                                            className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500 text-[9px] font-black uppercase tracking-widest hover:bg-amber-500/20 transition-all active:scale-98"
+                                                        >
+                                                            <BookOpen size={13} />
+                                                            {pct > 0 ? 'Continuer la lecture' : 'Commencer la lecture'}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </motion.div>
+                                        );
+                                    })}
+
+                                    {/* Carte d'ajout rapide */}
+                                    <motion.button
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: userBooks.length * 0.06 }}
+                                        onClick={() => setShowUploadModal(true)}
+                                        className="card-warrior flex flex-col items-center justify-center gap-3 h-60 border-2 border-dashed border-slate-800 hover:border-amber-500/50 text-slate-700 hover:text-amber-500 transition-all group bg-transparent"
+                                    >
+                                        <div className="w-16 h-16 rounded-2xl border-2 border-dashed border-current flex items-center justify-center group-hover:scale-110 transition-transform">
+                                            <Upload size={22} />
+                                        </div>
+                                        <span className="text-[9px] font-black uppercase tracking-widest">Ajouter un livre</span>
+                                    </motion.button>
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
 
                     {/* ════════════════════════════════════════════
                         TAB 1 — BIBLIOTHÈQUE
@@ -1558,6 +1832,202 @@ export default function AcademiePage() {
                     );
                 })()}
             </AnimatePresence>
+
+            {/* ══════════════════════════════════════════════════
+                MODAL D'UPLOAD DE LIVRE
+            ══════════════════════════════════════════════════ */}
+            <AnimatePresence>
+                {showUploadModal && (
+                    <motion.div
+                        key="upload-modal"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-xl"
+                        onClick={(e) => { if (e.target === e.currentTarget) { setShowUploadModal(false); setUploadFile(null); } }}
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="w-full max-w-lg bg-slate-950 border border-amber-500/20 rounded-3xl overflow-hidden shadow-2xl shadow-amber-500/5"
+                        >
+                            {/* Header */}
+                            <div className="flex items-center justify-between px-6 py-5 border-b border-white/5">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-amber-500/10 rounded-xl">
+                                        <Upload size={18} className="text-amber-500" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-ancient font-black text-white text-sm uppercase tracking-widest">Uploader un Livre</h3>
+                                        <p className="text-[8px] text-slate-500 font-bold uppercase">PDF · Supabase Storage</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => { setShowUploadModal(false); setUploadFile(null); }}
+                                    className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition-all"
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
+
+                            <div className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+
+                                {/* Zone drag & drop */}
+                                <div
+                                    onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                                    onDragLeave={() => setDragOver(false)}
+                                    onDrop={handleFileDrop}
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className={`relative flex flex-col items-center justify-center gap-3 p-8 rounded-2xl border-2 border-dashed cursor-pointer transition-all ${dragOver
+                                        ? 'border-amber-500 bg-amber-500/10'
+                                        : uploadFile
+                                            ? 'border-emerald-500/50 bg-emerald-500/5'
+                                            : 'border-slate-700 hover:border-amber-500/50 hover:bg-slate-900/60'
+                                        }`}
+                                >
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept=".pdf,.epub"
+                                        className="hidden"
+                                        onChange={handleFileDrop}
+                                    />
+                                    {uploadFile ? (
+                                        <>
+                                            <div className="text-4xl">✅</div>
+                                            <div className="text-center">
+                                                <p className="font-black text-emerald-400 text-[11px] uppercase tracking-wider truncate max-w-xs">
+                                                    {uploadFile.name}
+                                                </p>
+                                                <p className="text-[9px] text-slate-500 font-bold mt-1">
+                                                    {(uploadFile.size / 1048576).toFixed(1)} Mo · Cliquer pour changer
+                                                </p>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${dragOver ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-500'}`}>
+                                                <FileText size={24} />
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="font-black text-slate-400 text-[11px] uppercase tracking-wider">
+                                                    Glisser-déposer ou cliquer
+                                                </p>
+                                                <p className="text-[9px] text-slate-600 font-bold mt-1">PDF uniquement · Max 50 Mo</p>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+
+                                {/* Sélecteur d'emoji couverture */}
+                                <div>
+                                    <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-3">
+                                        Icône de couverture
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {COVER_EMOJIS.map(emoji => (
+                                            <button
+                                                key={emoji}
+                                                onClick={() => setUploadMeta(p => ({ ...p, coverEmoji: emoji }))}
+                                                className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all ${uploadMeta.coverEmoji === emoji
+                                                    ? 'bg-amber-500 scale-110 shadow-lg shadow-amber-500/30'
+                                                    : 'bg-slate-900 hover:bg-slate-800 border border-slate-800'
+                                                    }`}
+                                            >
+                                                {emoji}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Titre */}
+                                <div>
+                                    <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest block mb-2">Titre du livre *</label>
+                                    <input
+                                        type="text"
+                                        value={uploadMeta.title}
+                                        onChange={(e) => setUploadMeta(p => ({ ...p, title: e.target.value }))}
+                                        placeholder="Ex: Dune — Frank Herbert"
+                                        className="w-full bg-slate-900 border border-slate-700 focus:border-amber-500 rounded-xl px-4 py-3 text-white text-sm font-ancient outline-none transition-all placeholder-slate-700"
+                                    />
+                                </div>
+
+                                {/* Auteur */}
+                                <div>
+                                    <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest block mb-2">Auteur</label>
+                                    <input
+                                        type="text"
+                                        value={uploadMeta.author}
+                                        onChange={(e) => setUploadMeta(p => ({ ...p, author: e.target.value }))}
+                                        placeholder="Ex: Frank Herbert"
+                                        className="w-full bg-slate-900 border border-slate-700 focus:border-amber-500 rounded-xl px-4 py-3 text-white text-sm font-ancient outline-none transition-all placeholder-slate-700"
+                                    />
+                                </div>
+
+                                {/* Catégorie */}
+                                <div>
+                                    <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest block mb-2">Catégorie</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {UPLOAD_CATEGORIES.map(cat => (
+                                            <button
+                                                key={cat}
+                                                onClick={() => setUploadMeta(p => ({ ...p, category: cat }))}
+                                                className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${uploadMeta.category === cat
+                                                    ? 'bg-amber-500 border-amber-500 text-slate-950'
+                                                    : 'bg-slate-900 border-slate-700 text-slate-500 hover:border-slate-500'
+                                                    }`}
+                                            >
+                                                {cat}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Bouton upload */}
+                                <button
+                                    onClick={handleUpload}
+                                    disabled={!uploadFile || uploading}
+                                    className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-black text-[11px] uppercase tracking-widest transition-all active:scale-98 shadow-lg shadow-amber-500/20"
+                                >
+                                    {uploading ? (
+                                        <>
+                                            <Loader size={16} className="animate-spin" />
+                                            Envoi en cours...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Upload size={16} />
+                                            Sceller dans la bibliothèque
+                                        </>
+                                    )}
+                                </button>
+
+                                {/* Info Supabase */}
+                                <p className="text-center text-[8px] text-slate-700 font-bold uppercase tracking-widest">
+                                    🔐 Stockage sécurisé · Bucket Supabase privé
+                                </p>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* ══════════════════════════════════════════════════
+                LECTEUR DE LIVRES UPLOADÉS (BookReader)
+            ══════════════════════════════════════════════════ */}
+            <AnimatePresence>
+                {readingUserBook && (
+                    <BookReader
+                        book={readingUserBook}
+                        onClose={() => setReadingUserBook(null)}
+                        onProgressUpdate={(id, pct) => {
+                            setUserBooks(prev => prev.map(b => b.id === id ? { ...b, read_progress: pct } : b));
+                        }}
+                    />
+                )}
+            </AnimatePresence>
+
         </div >
     );
 }

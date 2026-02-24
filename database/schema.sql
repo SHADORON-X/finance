@@ -411,13 +411,16 @@ ORDER BY d.priority DESC, d.due_date ASC NULLS LAST;
 CREATE OR REPLACE FUNCTION initialize_new_user(p_user_id UUID)
 RETURNS VOID AS $$
 BEGIN
-    -- Créer les catégories par défaut
+    -- Créer les catégories par défaut (Blueprint Stratégique)
     INSERT INTO categories (user_id, name, icon, percent, is_locked, color) VALUES
-        (p_user_id, 'Épargne', '🔒', 10, true, '#10b981'),
-        (p_user_id, 'Nourriture', '🍽️', 30, false, '#f59e0b'),
-        (p_user_id, 'Projet', '🎯', 25, false, '#6366f1'),
-        (p_user_id, 'Transport', '🚗', 20, false, '#8b5cf6'),
-        (p_user_id, 'Autres', '📦', 15, false, '#ef4444');
+        (p_user_id, 'Épargne Stratégique', '🔒', 25, true, '#10b981'),
+        (p_user_id, 'Fonds Imprévus', '🚨', 10, false, '#ef4444'),
+        (p_user_id, 'Projet / Velmo', '🎯', 30, false, '#3b82f6'),
+        (p_user_id, 'Compétences', '🧠', 12, false, '#8b5cf6'),
+        (p_user_id, 'Internet & Outils', '🌐', 8, false, '#06b6d4'),
+        (p_user_id, 'Nourriture', '🍽️', 10, false, '#f59e0b'),
+        (p_user_id, 'Transport', '🚗', 5, false, '#6366f1'),
+        (p_user_id, 'Confort / Perso', '🎧', 0, false, '#ec4899');
     
     -- Créer l'entrée gamification
     INSERT INTO gamification (user_id, xp, level, current_streak, best_streak)

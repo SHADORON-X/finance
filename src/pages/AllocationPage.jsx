@@ -181,10 +181,10 @@ export default function AllocationPage() {
     const surplus = Math.max(0, simAmount - baseIncome);
     const surplusDistrib = distributeSurplus(budgetConfig, surplus);
 
-    const blueprintDistrib = distributeBudget(budgetConfig, baseIncome).map(sub => ({
+    const blueprintDistrib = distributeBudget(budgetConfig, simAmount).map(sub => ({
         ...sub,
         blocColor: BLOC_META[sub.bloc]?.color || 'amber',
-        amount: Math.round(baseIncome * sub.percent / 100),
+        amount: Math.round(simAmount * sub.percent / 100),
     }));
 
     return (
@@ -515,10 +515,10 @@ export default function AllocationPage() {
                                 />
                             </div>
 
-                            {/* Distribution de la base */}
+                            {/* Distribution de la base (ou du montant simulé) */}
                             <div className="card-warrior p-6 bg-slate-900/40">
                                 <h3 className="font-ancient font-black text-slate-400 text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2">
-                                    <Shield size={14} /> Distribution Base ({fmt(baseIncome)})
+                                    <Shield size={14} /> Distribution Projetée ({fmt(simAmount)})
                                 </h3>
                                 <div className="space-y-2">
                                     {blueprintDistrib.map((item, i) => {

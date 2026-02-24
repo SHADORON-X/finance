@@ -3,6 +3,8 @@
 // Analytique, Sage, Investisseur, Visionnaire
 // =====================================================
 
+import { formatCurrency } from './currencyService';
+
 const POLLINATIONS_API_KEY = localStorage.getItem('custom_pollinations_key') || import.meta.env.VITE_POLLINATIONS_API_KEY;
 const POLLINATIONS_API_URL = 'https://gen.pollinations.ai/v1/chat/completions';
 
@@ -64,11 +66,6 @@ Chaque mot doit avoir le poids de l'or.`,
     temperature: 0.8,
     maxTokens: 3000
 };
-
-/**
- * Fonctions utilitaires
- */
-import { formatCurrency } from './currencyService';
 
 /**
  * Helper générique pour appeler l'API Pollinations

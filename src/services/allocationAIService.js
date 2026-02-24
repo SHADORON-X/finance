@@ -4,6 +4,8 @@
 // =====================================================
 
 import { FINANCIAL_WISDOM, ALLOCATION_STRATEGIES } from '../data/financialWisdom';
+import { formatCurrency } from './currencyService';
+
 
 const POLLINATIONS_API_KEY = localStorage.getItem('custom_pollinations_key') || import.meta.env.VITE_POLLINATIONS_API_KEY;
 const POLLINATIONS_API_URL = 'https://gen.pollinations.ai/v1/chat/completions';
@@ -218,8 +220,6 @@ Sois DIRECT et SANS PITIÉ pour les dépenses futiles.`;
         return `Le Gardien examine cette dépense de ${formatCurrency(amount)}. Demande-toi: "En ai-je vraiment BESOIN ou est-ce un DÉSIR passager ?"`;
     }
 }
-
-import { formatCurrency } from './currencyService';
 
 export default {
     getAllocationAdvice,
